@@ -15,17 +15,8 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Board extends JPanel implements Runnable {
-	
-	private final int B_WIDTH = 600;// * SimUtils.scaleFactor;
-    private final int B_HEIGHT = 600;// * SimUtils.scaleFactor;
-    private final int INITIAL_X = 40;// * SimUtils.scaleFactor;
-    private final int INITIAL_Y = 40;// * SimUtils.scaleFactor;
-    private final int DELAY = 25;
     
     private Thread animator;
-    
-   // private Map map;
-    private int mapSize;
     
     private ArrayList<Puffer> pufferList;
     private ArrayList<Food> foodList;
@@ -38,22 +29,20 @@ public class Board extends JPanel implements Runnable {
     private void initBoard() {
 
         setBackground(Color.BLACK);
-        setPreferredSize(new Dimension(B_WIDTH, B_HEIGHT));
+        setPreferredSize(new Dimension(SimUtils.worldSize, SimUtils.worldSize));
         
         	pufferList = new ArrayList<Puffer>();
         	for (int i = 0; i < SimUtils.nPuffers; i++) {
-        		int xpos = ThreadLocalRandom.current().nextInt(1, B_WIDTH);
-        		int ypos = ThreadLocalRandom.current().nextInt(1, B_HEIGHT);
+        		int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
+        		int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
         		pufferList.add(new Puffer(xpos, ypos, 10));
         	}
         	
         	foodList = new ArrayList<Food>();
         	Random random = new Random();
         	
-        mapSize = B_WIDTH;
-		
-		for (int x = 0; x < mapSize; x++) {
-			for (int y = 0; y < mapSize; y++) {
+		for (int x = 0; x < SimUtils.worldSize; x++) {
+			for (int y = 0; y < SimUtils.worldSize; y++) {
 				if (random.nextFloat() < SimUtils.foodDensity) {
 					foodList.add(new Food(x, y, 10));
 				}
@@ -94,10 +83,10 @@ public class Board extends JPanel implements Runnable {
     		Coord c = puffer.getCoord();
     		// FIXME should bounce
    	
-    		if ((c.x > B_WIDTH) || (c.x < 0)) { 
+    		if ((c.x > SimUtils.worldSize) || (c.x < 0)) { 
     			puffer.bounce(true, false);
     		} 
-    		if ((c.y > B_HEIGHT) || (c.y < 0)) { 
+    		if ((c.y > SimUtils.worldSize) || (c.y < 0)) { 
     			puffer.bounce(false, true);
             }
     		
@@ -112,7 +101,6 @@ public class Board extends JPanel implements Runnable {
     				// Food got eaten!
     				puffer.eat();
     				removeList.add(food);
-    				//System.out.println("Puffer ate a food!");
     			}
     		}
     		foodList.removeAll(removeList);
@@ -141,7 +129,7 @@ public class Board extends JPanel implements Runnable {
             repaint();
 
             timeDiff = System.currentTimeMillis() - beforeTime;
-            sleep = DELAY - timeDiff;
+            sleep = SimUtils.globalDelay - timeDiff;
 
             if (sleep < 0) {
                 sleep = 2;
