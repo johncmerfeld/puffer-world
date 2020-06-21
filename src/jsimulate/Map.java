@@ -1,5 +1,7 @@
 package jsimulate;
 
+// DEPRECATED; maybe useful when I'm keeping statistics...
+
 import java.util.Random;
 
 public class Map {

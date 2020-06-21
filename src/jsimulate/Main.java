@@ -3,6 +3,14 @@ package jsimulate;
 import java.awt.EventQueue;
 import javax.swing.JFrame;
 
+/*
+ * FIXME:
+ *   - Add scrollability
+ *   - Don't recreate on resize
+ * TODO:
+ *   - Food clustering?
+ */
+
 public class Main extends JFrame {
 
     public Main() {

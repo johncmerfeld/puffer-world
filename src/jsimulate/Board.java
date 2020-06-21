@@ -7,8 +7,6 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 
-import java.awt.Toolkit;
-
 import javax.swing.JPanel;
 import javax.swing.JOptionPane;
 
@@ -75,7 +73,6 @@ public class Board extends JPanel implements Runnable {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         
-        	// TODO if no map, draw one, else use existing map
         drawMap(g);
         	for (Puffer puffer : pufferList) {
         		drawPuffer(g, puffer);
@@ -85,8 +82,8 @@ public class Board extends JPanel implements Runnable {
 	 private void drawPuffer(Graphics g, Puffer puffer) {
 	    	g.setColor(puffer.getColor());
 	    	Coord c = puffer.getCoord();
-	    	g.fillRect(c.x * SimUtils.scaleFactor, c.y * SimUtils.scaleFactor, puffer.getSize(), puffer.getSize()); // TODO puffer size!!
-        Toolkit.getDefaultToolkit().sync();
+	    	int pSize = puffer.getSize();
+	    	g.fillRect(c.x * SimUtils.scaleFactor, c.y * SimUtils.scaleFactor, pSize, pSize);
     }
 
     private void cycle() {
@@ -95,20 +92,22 @@ public class Board extends JPanel implements Runnable {
     		//System.out.println("Trying to move...");
     		puffer.move(foodList);
     		Coord c = puffer.getCoord();
-    		// FIXME only covers bottom -- should bounce
-    		if ((c.y > B_HEIGHT) || (c.y < 0) || (c.x > B_WIDTH) || (c.x < 0)){
-
-    			c.y = INITIAL_Y;
-    			c.x = INITIAL_X;
-    			puffer.setCoord(c);
+    		// FIXME should bounce
+   	
+    		if ((c.x > B_WIDTH) || (c.x < 0)) { 
+    			puffer.bounce(true, false);
+    		} 
+    		if ((c.y > B_HEIGHT) || (c.y < 0)) { 
+    			puffer.bounce(false, true);
             }
+    		
+    		Rectangle p = puffer.getBounds();
     		
     		ArrayList<Food> removeList = new ArrayList<Food>();
     		
     		for (Food food : foodList) {
-    			// FIXME too exact
     			Rectangle f = food.getBounds();
-    			Rectangle p = puffer.getBounds();
+    			
     			if (p.intersects(f)) {
     				// Food got eaten!
     				puffer.eat();
@@ -118,6 +117,14 @@ public class Board extends JPanel implements Runnable {
     		}
     		foodList.removeAll(removeList);
     		
+    		for (Puffer puffer2 : pufferList) {
+    			if (puffer2 != puffer) {
+    				Rectangle p2 = puffer2.getBounds();
+	        			if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
+	        				puffer.die();
+	        			}
+    			}	
+    		}	
     	}   
     }
 
@@ -154,16 +161,6 @@ public class Board extends JPanel implements Runnable {
         }
     }
 	
-	/*
-	 * FIXME:
-	 *   - Look into not filling entire window
-	 *   - Add scrollability
-	 *   - Don't recreate on resize
-	 * TODO:
-	 *   - Need boopers
-	 *   - Food clustering?
-	 */
-	
 	private void drawMap(Graphics g) {
 		Graphics2D g2d = (Graphics2D) g;
 
@@ -181,7 +178,7 @@ public class Board extends JPanel implements Runnable {
         	for (Food food : foodList) {
         		g.setColor(food.getColor());
         		c = food.getCoord();
-        		// TODO fix this scale factor thing
+        		// TODO cleanup, remove scale factor
         		g.fillRect(c.x * SimUtils.scaleFactor, c.y * SimUtils.scaleFactor, food.getSize(), food.getSize());
         	}
 

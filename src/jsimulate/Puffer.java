@@ -1,6 +1,7 @@
 package jsimulate;
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 
@@ -10,6 +11,8 @@ public class Puffer extends SimObject {
 	private int foodsSinceGrowth = 0;
 	private int foodsForGrowth = 2;
 	private double maxFoodDistance = 50.0;
+	
+	private boolean isAlive = true;
 	
 	public Puffer(int x, int y) {
 		super(x, y, 7, Color.BLUE);
@@ -29,21 +32,31 @@ public class Puffer extends SimObject {
 	
 	// TODO might be a more efficient way to do this
 	public void move(ArrayList<Food> foodList) {
+		if (!isAlive) {
+			return;
+		}
 		int newX, newY;
-		//	FIXME this does not necessarily go to nearest food
+		HashMap<Coord, Double> foodCoords = new HashMap<Coord, Double>();
 		for (Food food : foodList) {
 			Coord c = food.getCoord();
 			double distance = calculateDistance(c);
 			if (distance < maxFoodDistance) {
-				int xdiff = c.x - coord.x;
-				int ydiff = c.y - coord.y;
-				newX = xdiff > 0 ? 1 : -1;
-				newY = ydiff > 0 ? 1 : -1;
-				this.setVelocity(new Velocity(newX, newY));
-				this.setCoord(new Coord(coord.x + newX, coord.y + newY));
-				movesSinceChange = 0;
-				return;
+				foodCoords.put(c, distance);			
 			}
+		}
+		// if near food, go to nearest food
+		if (!foodCoords.isEmpty()) {
+			
+			Coord minCoord = closestPoint(foodCoords);
+			
+			int xdiff = minCoord.x - coord.x;
+			int ydiff = minCoord.y - coord.y;
+			newX = xdiff > 0 ? 1 : -1;
+			newY = ydiff > 0 ? 1 : -1;
+			this.setVelocity(new Velocity(newX, newY));
+			this.setCoord(new Coord(coord.x + newX, coord.y + newY));
+			movesSinceChange = 0;
+			return;
 		}
 		// not near any food
 		if (this.movesSinceChange > 20) {
@@ -73,7 +86,27 @@ public class Puffer extends SimObject {
 		return;	
 	}
 	
+	private Coord closestPoint(HashMap<Coord, Double> map) {
+		double minDistance = Double.POSITIVE_INFINITY;
+		double currentDistance;
+		
+		// THIS WILL NEVER BE RETURNED UNINITIALIZED
+		Coord minCoord = new Coord(0,0);
+		
+		for (Coord c : map.keySet()) {
+			currentDistance = map.get(c);
+			if (currentDistance < minDistance) {
+				minCoord = c;
+				minDistance = currentDistance;
+			}
+		}	
+		return minCoord;	
+	}
+	
 	public void eat() {
+		if (!isAlive) {
+			return;
+		}
 		foodsSinceGrowth++;
 		if (foodsSinceGrowth > foodsForGrowth) {
 			grow();
@@ -84,6 +117,26 @@ public class Puffer extends SimObject {
 		size += 2;
 		maxFoodDistance += 10.0;
 		color = color.brighter();
+	}
+	
+	public void die() {
+		color = Color.GRAY;
+		velocity = new Velocity(0,0);
+		isAlive = false;
+	}
+	
+	public void bounce(boolean x, boolean y) {
+		int currentX = velocity.xVel;
+		int currentY = velocity.yVel;
+		int newX = currentX;
+		int newY = currentY;
+		if (x) {
+			newX = -currentX;
+		}
+		if (y) {
+			newY = -currentY;
+		}
+		velocity = new Velocity(newX, newY);
 	}
 	
 }
