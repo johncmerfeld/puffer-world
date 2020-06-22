@@ -11,13 +11,14 @@ import javax.swing.JPanel;
 import javax.swing.JOptionPane;
 
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Board extends JPanel implements Runnable {
-    
-    private Thread animator;
+
+	private static final long serialVersionUID = 1L;
+	private Thread animator;
     private GlobalMap map;
+    private int globalTime = 0;
 
     public Board() {
     	
@@ -44,13 +45,14 @@ public class Board extends JPanel implements Runnable {
 			}
 		}
 		
+		/*
 		for (int x = 0; x < SimUtils.worldSize; x++) {
 			for (int y = 0; y < SimUtils.worldSize; y++) {
 				if (ThreadLocalRandom.current().nextFloat() < SimUtils.wallDensity) {
 					map.add(new Wall(x, y, SimUtils.defaultEnvObjectSize * 2));
 				}
 			}
-		}
+		} */
     }
 
     @Override
@@ -129,7 +131,7 @@ public class Board extends JPanel implements Runnable {
     			}
     		}
     		
-    		map.removeAll(removeList);
+    		map.removeFoods(removeList);
     		
     		for (Puffer puffer2 : map.getPufferList()) {
     			if (puffer2 != puffer) {
@@ -211,7 +213,9 @@ public class Board extends JPanel implements Runnable {
 	private void advanceTime() {
 		
 		/* make some food rot */
-		ArrayList<Food> removeList = new ArrayList<Food>();
+		ArrayList<Puffer> decayedPuffers = new ArrayList<Puffer>();
+		ArrayList<Food> rottenFoods = new ArrayList<Food>();
+		ArrayList<Wall> crumbledWalls = new ArrayList<Wall>();
 		ArrayList<Food> localFoods = map.getFoodList();
 		
 		Food food;
@@ -219,26 +223,51 @@ public class Board extends JPanel implements Runnable {
 		for (int i = 0; i < localFoods.size(); i++) {		
 			food = localFoods.get(i);
 			if (!food.ageUp()) {
-				removeList.add(food);
+				rottenFoods.add(food);
 			}
 		}
 		
 		Coord c;
 		
-		for (Food rottenFood : removeList) {
+		for (Food rottenFood : rottenFoods) {
 			c = rottenFood.getCoord();
 			map.add(new Wall(c.x, c.y, rottenFood.getSize()));
 		}
 		
-		map.removeAll(removeList);
+		map.removeFoods(rottenFoods);
 		
+		for (Puffer puffer : map.getPufferList()) {
+			if (!puffer.isAlive()) {
+				if (!puffer.ageUp()) {
+					decayedPuffers.add(puffer);
+				}
+			}
+		}
 		
-		/* create some new food */
-		for (int i = 0; i < SimUtils.foodsPerGeneration; i++) {
-    		int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-    		int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-    		map.add(new Food(xpos, ypos, SimUtils.defaultEnvObjectSize));
-    	}
+		for (Puffer decayedPuffer : decayedPuffers) {
+			c = decayedPuffer.getCoord();
+			map.add(new Food(c.x, c.y, decayedPuffer.getSize()));
+		}
 		
+		map.removePuffers(decayedPuffers);
+		
+		for (Wall wall : map.getWallList()) {
+			if (!wall.ageUp()) {
+				crumbledWalls.add(wall);
+			}
+		}
+		
+		map.removeWalls(crumbledWalls);
+		
+		globalTime++;
+		
+		if (globalTime % SimUtils.foodGenerationInterval == 0) {
+			/* create some new food */
+			for (int i = 0; i < SimUtils.foodsPerGeneration; i++) {
+		    	int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
+		    	int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
+		    	map.add(new Food(xpos, ypos, SimUtils.defaultEnvObjectSize));
+			}
+		}
 	}
 }

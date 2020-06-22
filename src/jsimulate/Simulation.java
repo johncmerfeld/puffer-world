@@ -23,7 +23,7 @@ public class Simulation extends JFrame {
     	window.getVerticalScrollBar().setUnitIncrement(16);
     	
     	window.setPreferredSize(new Dimension(SimUtils.worldSize, SimUtils.worldSize));
-    	setPreferredSize(new Dimension(SimUtils.worldSize, SimUtils.worldSize));
+    	setPreferredSize(new Dimension(SimUtils.worldSize + 40, SimUtils.worldSize + 40));
     	
         add(window);
 

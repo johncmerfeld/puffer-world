@@ -3,10 +3,15 @@ package jsimulate;
 import java.awt.Color;
 
 public abstract class Creature extends SimObject {
+	
+	protected boolean alive = true;
 
 	public Creature(int x, int y, int size, Color color) {
 		super(x, y, size, color);
-		// TODO Auto-generated constructor stub
+	}
+	
+	public boolean isAlive() {
+		return alive;
 	}
 	
 	public abstract void move(GlobalMap map);

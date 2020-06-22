@@ -1,6 +1,5 @@
 package jsimulate;
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -12,28 +11,30 @@ public class Puffer extends Creature {
 	private int foodsForGrowth = 2;
 	private double maxFoodDistance = 50.0;
 	
-	private boolean isAlive = true;
+	private int decayTime = 1000;
 	
 	public Puffer(int x, int y) {
 		super(x, y, SimUtils.defaultCreatureSize, Color.BLUE);
 		this.setVelocity(new Velocity(1, 1));
-		
+		this.maxAge = decayTime;
 	}
 	
 	public Puffer(int x, int y, int size) {
 		super(x, y, size, Color.BLUE);
 		this.setVelocity(new Velocity(1, 1));
+		this.maxAge = decayTime;
 	}
 	
 	public Puffer(int x, int y, int size, Color color) {
 		super(x, y, size, color);
 		this.setVelocity(new Velocity(1, 1));
+		this.maxAge = decayTime;
 	}
 	
 	// might be a more efficient way to do this
 	@Override
 	public void move(GlobalMap map) {
-		if (!isAlive) {
+		if (!alive) {
 			return;
 		}
 		int newX, newY;
@@ -113,7 +114,7 @@ public class Puffer extends Creature {
 	}
 	
 	public void eat() {
-		if (!isAlive) {
+		if (!alive) {
 			return;
 		}
 		foodsSinceGrowth++;
@@ -131,9 +132,9 @@ public class Puffer extends Creature {
 	
 	@Override
 	public void die() {
-		color = Color.DARK_GRAY;
+		color = Color.MAGENTA;
 		velocity = new Velocity(0,0);
-		isAlive = false;
+		alive = false;
 	}
 	
 	@Override

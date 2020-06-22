@@ -67,8 +67,16 @@ public class GlobalMap {
 		this.wallList.add(wall);
 	}
 	
-	public void removeAll(ArrayList<Food> removeList) {
+	public void removeFoods(ArrayList<Food> removeList) {
 		this.foodList.removeAll(removeList);
+	}
+	
+	public void removePuffers(ArrayList<Puffer> removeList) {
+		this.pufferList.removeAll(removeList);
+	}
+	
+	public void removeWalls(ArrayList<Wall> removeList) {
+		this.wallList.removeAll(removeList);
 	}
 	
 }
