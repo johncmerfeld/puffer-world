@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 
-public class Puffer extends SimObject {
+public class Puffer extends Creature {
 	
 	private int movesSinceChange = 0;
 	private int foodsSinceGrowth = 0;
@@ -15,7 +15,7 @@ public class Puffer extends SimObject {
 	private boolean isAlive = true;
 	
 	public Puffer(int x, int y) {
-		super(x, y, 7, Color.BLUE);
+		super(x, y, SimUtils.defaultCreatureSize, Color.BLUE);
 		this.setVelocity(new Velocity(1, 1));
 		
 	}
@@ -30,14 +30,15 @@ public class Puffer extends SimObject {
 		this.setVelocity(new Velocity(1, 1));
 	}
 	
-	// TODO might be a more efficient way to do this
-	public void move(ArrayList<Food> foodList) {
+	// might be a more efficient way to do this
+	@Override
+	public void move(GlobalMap map) {
 		if (!isAlive) {
 			return;
 		}
 		int newX, newY;
 		HashMap<Coord, Double> foodCoords = new HashMap<Coord, Double>();
-		for (Food food : foodList) {
+		for (Food food : map.getFoodList()) {
 			Coord c = food.getCoord();
 			double distance = calculateDistance(c);
 			if (distance < maxFoodDistance) {
@@ -79,11 +80,19 @@ public class Puffer extends SimObject {
 			}
 			this.setVelocity(new Velocity(newX, newY));
 			movesSinceChange = 0;
+			moveForced();
 		} else {
-			this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
-			movesSinceChange++;
+			moveForced();
 		}		
 		return;	
+	}
+	
+	/* 
+	 * Move along current velocity, no calculation
+	 */
+	private void moveForced() {
+		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
+		movesSinceChange++;
 	}
 	
 	private Coord closestPoint(HashMap<Coord, Double> map) {
@@ -113,18 +122,21 @@ public class Puffer extends SimObject {
 		}
 	}
 	
+	@Override
 	public void grow() {
 		size += 2;
 		maxFoodDistance += 10.0;
 		color = color.brighter();
 	}
 	
+	@Override
 	public void die() {
-		color = Color.GRAY;
+		color = Color.DARK_GRAY;
 		velocity = new Velocity(0,0);
 		isAlive = false;
 	}
 	
+	@Override
 	public void bounce(boolean x, boolean y) {
 		int currentX = velocity.xVel;
 		int currentY = velocity.yVel;
@@ -137,6 +149,7 @@ public class Puffer extends SimObject {
 			newY = -currentY;
 		}
 		velocity = new Velocity(newX, newY);
+		moveForced();
 	}
 	
 }

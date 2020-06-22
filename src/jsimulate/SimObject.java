@@ -6,8 +6,11 @@ import java.awt.Rectangle;
 /*
  * Abstract class for everything that might appear on the map
  * Current inheritors are:
- *   - Puffer
- *   - Food
+ *   - CREATURES
+ *   	- Puffer
+ *   - ENVOBJECTS
+ *   	- Food
+ *   	- Wall
  */
 
 public abstract class SimObject {
@@ -15,6 +18,8 @@ public abstract class SimObject {
 	protected Color color;
 	protected int size;
 	protected Velocity velocity;
+	protected int currentAge = 0;
+	protected int maxAge;
 	
 	public SimObject(int x, int y, int size, Color color) {
 		this.coord = new Coord(x, y);
@@ -88,4 +93,12 @@ public abstract class SimObject {
 		return Math.hypot(coord.x - c.x, coord.y - c.y);
 	}
 	
+	/*
+	 * Returns false if the object is too old
+	 * FIXME rename this? Make more intuitive?
+	 */
+	public boolean ageUp() {
+		currentAge++;
+		return currentAge > maxAge ? false : true;
+	}
 }

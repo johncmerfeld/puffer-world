@@ -17,12 +17,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Board extends JPanel implements Runnable {
     
     private Thread animator;
-    
-    private ArrayList<Puffer> pufferList;
-    private ArrayList<Food> foodList;
+    private GlobalMap map;
 
     public Board() {
-
+    	
+    	map = new GlobalMap();
         initBoard();
     }
 
@@ -31,20 +30,24 @@ public class Board extends JPanel implements Runnable {
         setBackground(Color.BLACK);
         setPreferredSize(new Dimension(SimUtils.worldSize, SimUtils.worldSize));
         
-        	pufferList = new ArrayList<Puffer>();
         	for (int i = 0; i < SimUtils.nPuffers; i++) {
         		int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
         		int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-        		pufferList.add(new Puffer(xpos, ypos, 10));
+        		map.add(new Puffer(xpos, ypos, SimUtils.defaultCreatureSize));
         	}
-        	
-        	foodList = new ArrayList<Food>();
-        	Random random = new Random();
         	
 		for (int x = 0; x < SimUtils.worldSize; x++) {
 			for (int y = 0; y < SimUtils.worldSize; y++) {
-				if (random.nextFloat() < SimUtils.foodDensity) {
-					foodList.add(new Food(x, y, 10));
+				if (ThreadLocalRandom.current().nextFloat() < SimUtils.foodDensity) {
+					map.add(new Food(x, y, SimUtils.defaultEnvObjectSize));
+				}
+			}
+		}
+		
+		for (int x = 0; x < SimUtils.worldSize; x++) {
+			for (int y = 0; y < SimUtils.worldSize; y++) {
+				if (ThreadLocalRandom.current().nextFloat() < SimUtils.wallDensity) {
+					map.add(new Wall(x, y, SimUtils.defaultEnvObjectSize * 2));
 				}
 			}
 		}
@@ -63,7 +66,7 @@ public class Board extends JPanel implements Runnable {
         super.paintComponent(g);
         
         drawMap(g);
-        	for (Puffer puffer : pufferList) {
+        	for (Puffer puffer : map.getPufferList()) {
         		drawPuffer(g, puffer);
         	}
     }
@@ -72,29 +75,51 @@ public class Board extends JPanel implements Runnable {
 	    	g.setColor(puffer.getColor());
 	    	Coord c = puffer.getCoord();
 	    	int pSize = puffer.getSize();
-	    	g.fillRect(c.x * SimUtils.scaleFactor, c.y * SimUtils.scaleFactor, pSize, pSize);
+	    	g.fillRect(c.x, c.y, pSize, pSize);
     }
 
     private void cycle() {
     	
-    	for (Puffer puffer : pufferList) {
-    		//System.out.println("Trying to move...");
-    		puffer.move(foodList);
+    	advanceTime();
+    	
+    	for (Puffer puffer : map.getPufferList()) {
+    		
+    		// try to move the puffer, then check for collisions
+    		puffer.move(map);
     		Coord c = puffer.getCoord();
-    		// FIXME should bounce
+    		
+    		Rectangle p = puffer.getBounds();
+    		Rectangle w;
+    		
+    		ArrayList<Wall> localWalls = map.getWallList(); 		
+    		Wall wall;
+    		for (int i = 0; i < localWalls.size(); i++) {
+    			wall = localWalls.get(i);
+    			w = wall.getBounds();
+    			if (p.intersects(w)) {
+    				// FIXME probably not right behavior
+    				puffer.bounce(true, true);
+    				// FIXME puffer won't know how to get around the wall...
+    				//break;
+    			}
+    		}
    	
     		if ((c.x > SimUtils.worldSize) || (c.x < 0)) { 
     			puffer.bounce(true, false);
     		} 
-    		if ((c.y > SimUtils.worldSize) || (c.y < 0)) { 
+    		else if ((c.y > SimUtils.worldSize) || (c.y < 0)) { 
     			puffer.bounce(false, true);
             }
     		
-    		Rectangle p = puffer.getBounds();
-    		
     		ArrayList<Food> removeList = new ArrayList<Food>();
+    		ArrayList<Food> localFoods = map.getFoodList();
     		
-    		for (Food food : foodList) {
+    		Food food;
+    		
+    		for (int i = 0; i < localFoods.size(); i++) {
+    			
+    			food = localFoods.get(i);
+    			
     			Rectangle f = food.getBounds();
     			
     			if (p.intersects(f)) {
@@ -103,9 +128,10 @@ public class Board extends JPanel implements Runnable {
     				removeList.add(food);
     			}
     		}
-    		foodList.removeAll(removeList);
     		
-    		for (Puffer puffer2 : pufferList) {
+    		map.removeAll(removeList);
+    		
+    		for (Puffer puffer2 : map.getPufferList()) {
     			if (puffer2 != puffer) {
     				Rectangle p2 = puffer2.getBounds();
 	        			if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
@@ -162,15 +188,57 @@ public class Board extends JPanel implements Runnable {
         g2d.setRenderingHints(rh);
         
         	Coord c;
-        
-        	for (Food food : foodList) {
-        		g.setColor(food.getColor());
-        		c = food.getCoord();
-        		// TODO cleanup, remove scale factor
-        		g.fillRect(c.x * SimUtils.scaleFactor, c.y * SimUtils.scaleFactor, food.getSize(), food.getSize());
-        	}
-
+        	
+        	ArrayList<Food> localFoods = map.getFoodList(); 		
+		Food food;	
+		for (int i = 0; i < localFoods.size(); i++) {
+			food = localFoods.get(i);
+			g.setColor(food.getColor());
+    		c = food.getCoord();
+    		g.fillRect(c.x, c.y, food.getSize(), food.getSize());
+		}
+		
+		ArrayList<Wall> localWalls = map.getWallList(); 		
+		Wall wall;
+		for (int i = 0; i < localWalls.size(); i++) {
+			wall = localWalls.get(i);
+			g.setColor(wall.getColor());
+    		c = wall.getCoord();
+    		g.fillRect(c.x, c.y, wall.getSize(), wall.getSize());
+		}
 	}
-
- 
+	
+	private void advanceTime() {
+		
+		/* make some food rot */
+		ArrayList<Food> removeList = new ArrayList<Food>();
+		ArrayList<Food> localFoods = map.getFoodList();
+		
+		Food food;
+		
+		for (int i = 0; i < localFoods.size(); i++) {		
+			food = localFoods.get(i);
+			if (!food.ageUp()) {
+				removeList.add(food);
+			}
+		}
+		
+		Coord c;
+		
+		for (Food rottenFood : removeList) {
+			c = rottenFood.getCoord();
+			map.add(new Wall(c.x, c.y, rottenFood.getSize()));
+		}
+		
+		map.removeAll(removeList);
+		
+		
+		/* create some new food */
+		for (int i = 0; i < SimUtils.foodsPerGeneration; i++) {
+    		int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
+    		int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
+    		map.add(new Food(xpos, ypos, SimUtils.defaultEnvObjectSize));
+    	}
+		
+	}
 }
