@@ -87,7 +87,10 @@ public class Board extends JPanel implements Runnable {
     	
     	advanceTime();
     	
-    	for (Puffer puffer : map.getPufferList()) {
+    	ArrayList<Puffer> localPuffers = map.getPufferList(); 		
+		Puffer puffer;
+		for (int j = 0; j < localPuffers.size(); j++) {
+			puffer = localPuffers.get(j);
     		
     		// try to move the puffer, then check for collisions
     		puffer.move(map);

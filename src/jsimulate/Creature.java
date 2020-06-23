@@ -30,5 +30,7 @@ public abstract class Creature extends SimObject {
 	
 	public abstract void grow(int type);
 	public abstract void die();
+	
+	//public abstract void chase(Creature creature);
 
 }

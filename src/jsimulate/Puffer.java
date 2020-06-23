@@ -17,6 +17,9 @@ public class Puffer extends Creature {
 	private static int SIZE = 0;
 	private static int SPEED = 1;
 	
+	private Puffer predator;
+	private Puffer prey;
+	
 	private int decayTime = 1000;
 	
 	public Puffer(int x, int y) {
@@ -46,66 +49,148 @@ public class Puffer extends Creature {
 		if (!alive) {
 			return;
 		}
-		int newX, newY;
-		HashMap<Coord, Double> foodCoords = new HashMap<Coord, Double>();
-		ArrayList<Food> localFoods = map.getFoodList();	
+		
+		// if being chased, run away!!
+		if (predator != null) {
+			//System.out.println("I'm being chased");
+			moveAwayFrom(predator.getCoord());
+			return;
+		}
+		
+		// not being chased, look for food
+		if (!tryMovingTowardFood(map.getFoodList())) {
+			
+			if (prey != null) {
+				moveToward(prey.getCoord());
+				return;
+			}
+			// no food nearby, look for puffers to attack
+			if (!tryMovingTowardPuffer(map.getPufferList())) {
+				if (this.movesSinceChange > 20) {
+					this.setVelocity(SimUtils.createVelocity(speed));
+					movesSinceChange = 0;
+					moveForced();
+				} else {
+					moveForced();
+				}
+			}
+		}			
+		return;	
+	}
+
+	private boolean tryMovingTowardFood(ArrayList<Food> localFoods) {
+		HashMap<SimObject, Double> foodCoords = new HashMap<SimObject, Double>();
 		Food food;	
 		for (int i = 0; i < localFoods.size(); i++) {		
 			food = localFoods.get(i);
 			Coord c = food.getCoord();
 			double distance = calculateDistance(c);
 			if (distance < maxFoodDistance) {
-				foodCoords.put(c, distance);			
+				foodCoords.put(food, distance);			
 			}
 		}
 		// if near food, go to nearest food
-		if (!foodCoords.isEmpty()) {
-			
-			Coord minCoord = closestPoint(foodCoords);
-			
-			int xdiff = minCoord.x - coord.x;
-			int ydiff = minCoord.y - coord.y;
-			newX = xdiff > 0 ? speed : -speed;
-			newY = ydiff > 0 ? speed : -speed;
-			this.setVelocity(new Velocity(newX, newY));
-			this.setCoord(new Coord(coord.x + newX, coord.y + newY));
-			movesSinceChange = 0;
-			return;
+		if (!foodCoords.isEmpty()) {		
+			moveToward(closestPoint(foodCoords));
+			stopChasing();
+			return true;
+		} else return false;
+	}
+	
+	private boolean tryMovingTowardPuffer(ArrayList<Puffer> pufferList) {
+		ArrayList<Double> distanceList = new ArrayList<Double>();
+		Puffer puffer;
+		for (int i = 0; i < pufferList.size(); i++) {
+			puffer = pufferList.get(i);
+			Coord c = puffer.getCoord();
+			double distance = calculateDistance(c);
+			if ((distance < maxFoodDistance) && (puffer.getSize() < size) && (puffer.isAlive())) {
+				distanceList.add(distance);	
+			} else {
+				distanceList.add(Double.POSITIVE_INFINITY);
+			}
 		}
-		// not near any food
-		if (this.movesSinceChange > 20) {
-			this.setVelocity(SimUtils.createVelocity(speed));
-			movesSinceChange = 0;
-			moveForced();
+		int closestPufferIdx = closestIndex(distanceList);
+		
+		// if near puffer, go to nearest puffer
+		if (closestPufferIdx != -1) {
+			prey = pufferList.get(closestPufferIdx);
+			prey.sensePredator(this);
+			return true;
 		} else {
-			moveForced();
-		}		
-		return;	
+			stopChasing();
+			return false;
+		}
 	}
 	
 	/* 
 	 * Move along current velocity, no calculation
 	 */
 	private void moveForced() {
+		stopChasing();
 		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
 		movesSinceChange++;
 	}
 	
-	private Coord closestPoint(HashMap<Coord, Double> map) {
+	private void moveToward(Coord c) {
+		int newX, newY;
+		int xdiff = c.x - coord.x;
+		int ydiff = c.y - coord.y;
+		// FIXME this is creating problems!!
+		newX = xdiff > 0 ? speed : -speed;
+		newY = ydiff > 0 ? speed : -speed;
+		this.setVelocity(new Velocity(newX, newY));
+		this.setCoord(new Coord(coord.x + newX, coord.y + newY));
+		movesSinceChange = 0;
+	}
+	
+	private void moveAwayFrom(Coord c) {
+		int newX, newY;
+		int xdiff = c.x - coord.x;
+		int ydiff = c.y - coord.y;
+		// FIXME this is creating problems!!
+		newX = xdiff < 0 ? speed : -speed;
+		newY = ydiff < 0 ? speed : -speed;
+		this.setVelocity(new Velocity(newX, newY));
+		this.setCoord(new Coord(coord.x + newX, coord.y + newY));
+		movesSinceChange = 0;
+	}
+	
+	private Coord closestPoint(HashMap<SimObject, Double> map) {
 		double minDistance = Double.POSITIVE_INFINITY;
 		double currentDistance;
 		
 		// THIS WILL NEVER BE RETURNED UNINITIALIZED
 		Coord minCoord = new Coord(0,0);
+		Coord c;
 		
-		for (Coord c : map.keySet()) {
-			currentDistance = map.get(c);
+		for (SimObject so : map.keySet()) {
+			c = so.getCoord();
+			currentDistance = map.get(so);
 			if (currentDistance < minDistance) {
 				minCoord = c;
 				minDistance = currentDistance;
 			}
 		}	
 		return minCoord;	
+	}
+	
+	private int closestIndex(ArrayList<Double> distanceList) {
+		double minDistance = Double.POSITIVE_INFINITY;
+		double currentDistance;
+		
+		// THIS WILL NEVER BE RETURNED UNINITIALIZED
+		int minIndex = -1;
+		
+		for (int i = 0; i < distanceList.size(); i++) {
+			
+			currentDistance = distanceList.get(i);
+			if (currentDistance < minDistance) {
+				minIndex = i;
+				minDistance = currentDistance;
+			}
+		}	
+		return minIndex;	
 	}
 	
 	@Override
@@ -162,5 +247,22 @@ public class Puffer extends Creature {
 		velocity = new Velocity(newX, newY);
 		moveForced();
 	}
+	
+	public void sensePredator(Puffer puffer) {
+		predator = puffer;
+		//System.out.println("Oh no!!!!!!!");
+	}
+	
+	public void forgetPredator() {
+		predator = null;
+	}
+	
+	public void stopChasing() {
+		if (prey != null) {
+			prey.forgetPredator();
+			prey = null;
+		}
+	}
+	
 	
 }
