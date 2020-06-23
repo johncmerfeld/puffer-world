@@ -23,7 +23,10 @@ public class Board extends JPanel implements Runnable {
     public Board() {
     	
     	map = new GlobalMap();
-        initBoard();
+    }
+    
+    public void runBoard() { // params...
+    	initBoard();
     }
 
     private void initBoard() {
@@ -40,7 +43,7 @@ public class Board extends JPanel implements Runnable {
 		for (int x = 0; x < SimUtils.worldSize; x++) {
 			for (int y = 0; y < SimUtils.worldSize; y++) {
 				if (ThreadLocalRandom.current().nextFloat() < SimUtils.foodDensity) {
-					map.add(new Food(x, y, SimUtils.defaultEnvObjectSize));
+					map.add(SimUtils.createFood(x, y));
 				}
 			}
 		}
@@ -106,11 +109,14 @@ public class Board extends JPanel implements Runnable {
     			}
     		}
    	
-    		if ((c.x > SimUtils.worldSize) || (c.x < 0)) { 
+    		// FIXME these work but are hacks
+    		if ((c.x > SimUtils.worldSize - puffer.getSize()) || (c.x < 0)) { 
     			puffer.bounce(true, false);
+    			puffer.move(map);
     		} 
-    		else if ((c.y > SimUtils.worldSize) || (c.y < 0)) { 
+    		if ((c.y > SimUtils.worldSize - puffer.getSize()) || (c.y < 0)) { 
     			puffer.bounce(false, true);
+    			puffer.move(map);
             }
     		
     		ArrayList<Food> removeList = new ArrayList<Food>();
@@ -126,7 +132,7 @@ public class Board extends JPanel implements Runnable {
     			
     			if (p.intersects(f)) {
     				// Food got eaten!
-    				puffer.eat();
+    				puffer.eat(food);
     				removeList.add(food);
     			}
     		}
@@ -244,9 +250,19 @@ public class Board extends JPanel implements Runnable {
 			}
 		}
 		
-		for (Puffer decayedPuffer : decayedPuffers) {
-			c = decayedPuffer.getCoord();
-			map.add(new Food(c.x, c.y, decayedPuffer.getSize()));
+		for (Puffer dp : decayedPuffers) {
+			c = dp.getCoord();
+			float z = dp.getSize();
+			float p = dp.getSpeed();
+			if (z > p) {	
+				p = p / z;
+				z = 1;
+			} else {
+				z = z / p;
+				p = 1;
+			}
+			
+			map.add(new Food(c.x, c.y, z, p, dp.getSize()));
 		}
 		
 		map.removePuffers(decayedPuffers);
@@ -264,9 +280,7 @@ public class Board extends JPanel implements Runnable {
 		if (globalTime % SimUtils.foodGenerationInterval == 0) {
 			/* create some new food */
 			for (int i = 0; i < SimUtils.foodsPerGeneration; i++) {
-		    	int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-		    	int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-		    	map.add(new Food(xpos, ypos, SimUtils.defaultEnvObjectSize));
+		    	map.add(SimUtils.createFood());
 			}
 		}
 	}
