@@ -4,6 +4,8 @@ import java.awt.Color;
 
 public class Wall extends SimObject {
 	
+	private boolean crumbled = false;
+	
 	private int crumbleTime = 3000;
 
 	public Wall(int x, int y) {
@@ -19,6 +21,21 @@ public class Wall extends SimObject {
 	public Wall(int x, int y, int size, Color color) {
 		super(x, y, size, color);
 		this.maxAge = crumbleTime;
+	}
+
+	/**
+	 * @return the crumbled
+	 */
+	public boolean isCrumbled() {
+		return crumbled;
+	}
+
+	/**
+	 * @param crumbled the crumbled to set
+	 */
+	public void crumble() {
+		this.crumbled = true;
+		this.color = Color.GRAY;
 	}
 
 }

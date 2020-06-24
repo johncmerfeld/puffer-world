@@ -16,24 +16,22 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Board extends JPanel implements Runnable {
 
 	private static final long serialVersionUID = 1L;
+	
+	private volatile boolean running = true;
+    private volatile boolean paused = false;
+    private final Object pauseLock = new Object();
 	private Thread animator;
     private GlobalMap map;
     private int globalTime = 0;
 
     public Board() {
-    	
     	map = new GlobalMap();
-    }
-    
-    public void runBoard() { // params...
-    	initBoard();
-    }
-
-    private void initBoard() {
-
-        setBackground(Color.BLACK);
+    	setBackground(Color.BLACK);
         setPreferredSize(new Dimension(SimUtils.worldSize, SimUtils.worldSize));
-        
+    }
+
+    public void start() {
+
         	for (int i = 0; i < SimUtils.nPuffers; i++) {
         		int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
         		int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
@@ -47,22 +45,8 @@ public class Board extends JPanel implements Runnable {
 				}
 			}
 		}
-		
-		/*
-		for (int x = 0; x < SimUtils.worldSize; x++) {
-			for (int y = 0; y < SimUtils.worldSize; y++) {
-				if (ThreadLocalRandom.current().nextFloat() < SimUtils.wallDensity) {
-					map.add(new Wall(x, y, SimUtils.defaultEnvObjectSize * 2));
-				}
-			}
-		} */
-    }
 
-    @Override
-    public void addNotify() {
-        super.addNotify();
-
-        animator = new Thread(this);
+		animator = new Thread(this);
         animator.start();
     }
 
@@ -103,13 +87,15 @@ public class Board extends JPanel implements Runnable {
     		Wall wall;
     		for (int i = 0; i < localWalls.size(); i++) {
     			wall = localWalls.get(i);
-    			w = wall.getBounds();
-    			if (p.intersects(w)) {
-    				// FIXME probably not right behavior
-    				puffer.bounce(true, true);
-    				// FIXME puffer won't know how to get around the wall...
-    				//break;
-    			}
+    			if (!wall.isCrumbled()) {
+    				w = wall.getBounds();
+	        			if (p.intersects(w)) {
+	        				// FIXME probably not right behavior
+	        				puffer.bounce(true, true);
+	        				// FIXME puffer won't know how to get around the wall...
+	        				//break;
+	        			}
+    			}			
     		}
    	
     		// FIXME these work but are hacks
@@ -160,7 +146,31 @@ public class Board extends JPanel implements Runnable {
 
         beforeTime = System.currentTimeMillis();
 
-        while (true) {
+        while (running) {
+	        	synchronized (pauseLock) {
+                if (!running) { // may have changed while waiting to
+                    // synchronize on pauseLock
+                    break;
+                }
+                if (paused) {
+                    try {
+                        synchronized (pauseLock) {
+                            pauseLock.wait(); // will cause this Thread to block until 
+                            // another thread calls pauseLock.notifyAll()
+                            // Note that calling wait() will 
+                            // relinquish the synchronized lock that this 
+                            // thread holds on pauseLock so another thread
+                            // can acquire the lock to call notifyAll()
+                            // (link with explanation below this code)
+                        }
+                    } catch (InterruptedException ex) {
+                        break;
+                    }
+                    if (!running) { // running might have changed since we paused
+                        break;
+                    }
+                }
+            }
 
             cycle();
             repaint();
@@ -183,6 +193,26 @@ public class Board extends JPanel implements Runnable {
             }
 
             beforeTime = System.currentTimeMillis();
+        }
+    }
+
+    public void stop() {
+        running = false;
+        // you might also want to interrupt() the Thread that is 
+        // running this Runnable, too, or perhaps call:
+        resume();
+        // to unblock
+    }
+    
+    public void pause() {
+        // you may want to throw an IllegalStateException if !running
+        paused = true;
+    }
+
+    public void resume() {
+        synchronized (pauseLock) {
+            paused = false;
+            pauseLock.notifyAll(); // Unblocks thread
         }
     }
 	
@@ -224,7 +254,6 @@ public class Board extends JPanel implements Runnable {
 		/* make some food rot */
 		ArrayList<Puffer> decayedPuffers = new ArrayList<Puffer>();
 		ArrayList<Food> rottenFoods = new ArrayList<Food>();
-		ArrayList<Wall> crumbledWalls = new ArrayList<Wall>();
 		ArrayList<Food> localFoods = map.getFoodList();
 		
 		Food food;
@@ -272,11 +301,9 @@ public class Board extends JPanel implements Runnable {
 		
 		for (Wall wall : map.getWallList()) {
 			if (!wall.ageUp()) {
-				crumbledWalls.add(wall);
+				wall.crumble();
 			}
 		}
-		
-		map.removeWalls(crumbledWalls);
 		
 		globalTime++;
 		

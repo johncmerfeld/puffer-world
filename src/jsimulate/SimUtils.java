@@ -4,17 +4,17 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SimUtils {
 	public static int scaleFactor = 1;
-	public static int nPuffers = 25;
+	public static int nPuffers = 100;
 	public static double foodDensity = 0.00001;
 	public static double wallDensity = 0.00002;
-	public static int worldSize = 600;
+	public static int worldSize = 2000;
 	public static int globalDelay = 25;
 	
 	public static int defaultCreatureSize = 8;
 	public static int defaultEnvObjectSize = 6;
 	
 	public static int foodsPerGeneration = 1;
-	public static int foodGenerationInterval = 12;
+	public static int foodGenerationInterval = 4;
 	
 	public static Food createFood() {
 		int x = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);

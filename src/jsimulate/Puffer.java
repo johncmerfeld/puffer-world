@@ -2,6 +2,7 @@ package jsimulate;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Puffer extends Creature {
 	
@@ -21,6 +22,8 @@ public class Puffer extends Creature {
 	private Puffer prey;
 	
 	private int decayTime = 1000;
+	private int starvationTime = 1000;
+	private int starvationClock = 0;
 	
 	public Puffer(int x, int y) {
 		super(x, y, SimUtils.defaultCreatureSize, Color.BLUE);
@@ -50,9 +53,15 @@ public class Puffer extends Creature {
 			return;
 		}
 		
+		if (starvationClock >= starvationTime) {
+			die();
+			return;
+		}
+		
+		starvationClock++;
+		
 		// if being chased, run away!!
 		if (predator != null) {
-			//System.out.println("I'm being chased");
 			moveAwayFrom(predator.getCoord());
 			return;
 		}
@@ -60,11 +69,12 @@ public class Puffer extends Creature {
 		// not being chased, look for food
 		if (!tryMovingTowardFood(map.getFoodList())) {
 			
-			if (prey != null) {
+			if ((prey != null) && (prey.getSize() < size)) {
 				moveToward(prey.getCoord());
 				return;
 			}
-			// no food nearby, look for puffers to attack
+			
+			// if no food nearby, look for puffers to attack
 			if (!tryMovingTowardPuffer(map.getPufferList())) {
 				if (this.movesSinceChange > 20) {
 					this.setVelocity(SimUtils.createVelocity(speed));
@@ -133,26 +143,14 @@ public class Puffer extends Creature {
 	}
 	
 	private void moveToward(Coord c) {
-		int newX, newY;
-		int xdiff = c.x - coord.x;
-		int ydiff = c.y - coord.y;
-		// FIXME this is creating problems!!
-		newX = xdiff > 0 ? speed : -speed;
-		newY = ydiff > 0 ? speed : -speed;
-		this.setVelocity(new Velocity(newX, newY));
-		this.setCoord(new Coord(coord.x + newX, coord.y + newY));
+		this.setVelocity(calculateVelocity(c, true));
+		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
 		movesSinceChange = 0;
 	}
 	
 	private void moveAwayFrom(Coord c) {
-		int newX, newY;
-		int xdiff = c.x - coord.x;
-		int ydiff = c.y - coord.y;
-		// FIXME this is creating problems!!
-		newX = xdiff < 0 ? speed : -speed;
-		newY = ydiff < 0 ? speed : -speed;
-		this.setVelocity(new Velocity(newX, newY));
-		this.setCoord(new Coord(coord.x + newX, coord.y + newY));
+		this.setVelocity(calculateVelocity(c, false));
+		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
 		movesSinceChange = 0;
 	}
 	
@@ -198,6 +196,9 @@ public class Puffer extends Creature {
 		if (!alive) {
 			return;
 		}
+		
+		/* reset starvation clock */
+		starvationClock = 0;
 		
 		this.sizePts += food.getSizePts();
 		this.speedPts += food.getSpeedPts();
@@ -264,5 +265,65 @@ public class Puffer extends Creature {
 		}
 	}
 	
+	public Velocity calculateVelocity(Coord c, boolean toward) {
+		
+		// TODO this is non-obvious...
+		int newX, newY, scaledX, scaledY;
+		newX = newY = 0;
+		int xdiff = c.x - coord.x;
+		int ydiff = c.y - coord.y;
+		
+		int signX = xdiff > 0 ? 1 : -1;
+		int signY = ydiff > 0 ? 1 : -1;
+		if (!toward) {
+			signX *= -1;
+			signY *= -1;
+		}
+		
+		// base case -- allow me to go in a straight line
+		if (xdiff == 0) {
+			newY = speed * signY;	
+		}
+		if (ydiff == 0) {
+			newX = speed * signX;
+		}
+		
+		if (xdiff > ydiff) {
+			scaledX = (int) Math.round((float)xdiff / ydiff);
+			scaledY = 1;
+		} else if (xdiff < ydiff) {
+			scaledY = (int) Math.round((float)ydiff / xdiff);
+			scaledX = 1;		
+		} else {
+			scaledX = 1;
+			scaledY = 1;
+		}
+		
+		int remainingSpeed = speed;
+		// FIXME this a) is a huge hack and b) awards too many points if speed is odd
+		while (remainingSpeed > 0) {
+			if (ThreadLocalRandom.current().nextFloat() > 0.5) {
+				for (int i = 0; i < scaledX; i++) {
+					newX += 1 * signX;
+					remainingSpeed--;
+				}
+				for (int i = 0; i < scaledY; i++) {
+					newY += 1 * signY;
+					remainingSpeed--;
+				} 
+			} else {
+				for (int i = 0; i < scaledY; i++) {
+					newY += 1 * signY;
+					remainingSpeed--;
+				}
+				for (int i = 0; i < scaledX; i++) {
+					newX += 1 * signX;
+					remainingSpeed--;
+				} 
+			}
+		}
+
+		return new Velocity(newX, newY);
+	}
 	
 }
