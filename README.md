@@ -1,5 +1,14 @@
 ## Version history
 
+### Version 4.0 (June 24th):
+  - **Simulator UI: Pause, resume, and (buggy) restart**
+  - **New behavior: Starvation**
+    - Puffers that cannot find food die after a while
+  - **New behavior: Exhaustion (temporary)**
+    - Puffers die after a certain number of growth spurts
+  - Crumbled walls persist as spots on the map
+  - Fixes to smoothness of Puffer movement
+
 ### Version 3.0 (June 23rd):
   - **New Puffer attribute: Speed!**
     - Food provides nutrients for both size and speed
