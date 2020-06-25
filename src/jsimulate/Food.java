@@ -5,7 +5,7 @@ import java.awt.Rectangle;
 
 public class Food extends EnvObject  {
 	
-	private int lifespan = 1000;
+	private int lifespan = 1500;
 	private float sizePts;
 	private float speedPts;
 	

@@ -2,7 +2,6 @@ package jsimulate;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class Puffer extends Creature {
 	
@@ -22,7 +21,8 @@ public class Puffer extends Creature {
 	private Puffer prey;
 	
 	private int decayTime = 1000;
-	private int starvationTime = 1000;
+	private int starvationTime = 2000;
+	private int growthsLeft = 20;
 	private int starvationClock = 0;
 	
 	public Puffer(int x, int y) {
@@ -59,6 +59,7 @@ public class Puffer extends Creature {
 		}
 		
 		starvationClock++;
+		
 		
 		// if being chased, run away!!
 		if (predator != null) {
@@ -138,19 +139,19 @@ public class Puffer extends Creature {
 	 */
 	private void moveForced() {
 		stopChasing();
-		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
+		this.setCoord(new Coord(coord.x + velocity.x, coord.y + velocity.y));
 		movesSinceChange++;
 	}
 	
 	private void moveToward(Coord c) {
 		this.setVelocity(calculateVelocity(c, true));
-		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
+		this.setCoord(new Coord(coord.x + velocity.x, coord.y + velocity.y));
 		movesSinceChange = 0;
 	}
 	
 	private void moveAwayFrom(Coord c) {
 		this.setVelocity(calculateVelocity(c, false));
-		this.setCoord(new Coord(coord.x + velocity.xVel, coord.y + velocity.yVel));
+		this.setCoord(new Coord(coord.x + velocity.x, coord.y + velocity.y));
 		movesSinceChange = 0;
 	}
 	
@@ -216,6 +217,11 @@ public class Puffer extends Creature {
 	
 	@Override
 	public void grow(int type) {
+		growthsLeft--;
+		if (growthsLeft < 0) {
+			die();
+			return;
+		}
 		if (type == SIZE) {
 			size += 2;
 			maxFoodDistance += 8;
@@ -231,12 +237,16 @@ public class Puffer extends Creature {
 		color = Color.MAGENTA;
 		velocity = new Velocity(0,0);
 		alive = false;
+		if (predator != null) {
+			// communicate to my predator that I am dead
+			predator.stopChasing();
+		}
 	}
 	
 	@Override
 	public void bounce(boolean x, boolean y) {
-		int currentX = velocity.xVel;
-		int currentY = velocity.yVel;
+		int currentX = velocity.x;
+		int currentY = velocity.y;
 		int newX = currentX;
 		int newY = currentY;
 		if (x) {
@@ -251,7 +261,6 @@ public class Puffer extends Creature {
 	
 	public void sensePredator(Puffer puffer) {
 		predator = puffer;
-		//System.out.println("Oh no!!!!!!!");
 	}
 	
 	public void forgetPredator() {
@@ -267,11 +276,13 @@ public class Puffer extends Creature {
 	
 	public Velocity calculateVelocity(Coord c, boolean toward) {
 		
-		// TODO this is non-obvious...
-		int newX, newY, scaledX, scaledY;
+		int newX, newY;
 		newX = newY = 0;
 		int xdiff = c.x - coord.x;
 		int ydiff = c.y - coord.y;
+		if ((xdiff == 0) && (ydiff == 0)) {
+			return new Velocity(velocity.x, velocity.y);
+		}
 		
 		int signX = xdiff > 0 ? 1 : -1;
 		int signY = ydiff > 0 ? 1 : -1;
@@ -280,48 +291,20 @@ public class Puffer extends Creature {
 			signY *= -1;
 		}
 		
-		// base case -- allow me to go in a straight line
-		if (xdiff == 0) {
-			newY = speed * signY;	
-		}
-		if (ydiff == 0) {
-			newX = speed * signX;
-		}
-		
-		if (xdiff > ydiff) {
-			scaledX = (int) Math.round((float)xdiff / ydiff);
-			scaledY = 1;
-		} else if (xdiff < ydiff) {
-			scaledY = (int) Math.round((float)ydiff / xdiff);
-			scaledX = 1;		
-		} else {
-			scaledX = 1;
-			scaledY = 1;
+		int totalDiff = (Math.abs(xdiff) + Math.abs(ydiff));
+			
+		float ratioX = (float)Math.abs(xdiff) / totalDiff;
+		float ratioY = (float)Math.abs(ydiff) / totalDiff;
+		if ((ratioX > 1) || (ratioY > 1)) {
+			System.out.println(xdiff);
+			System.out.println(ydiff);
+			System.out.println(ratioX);
+			System.out.println(ratioY);
+			System.out.println("-----");
 		}
 		
-		int remainingSpeed = speed;
-		// FIXME this a) is a huge hack and b) awards too many points if speed is odd
-		while (remainingSpeed > 0) {
-			if (ThreadLocalRandom.current().nextFloat() > 0.5) {
-				for (int i = 0; i < scaledX; i++) {
-					newX += 1 * signX;
-					remainingSpeed--;
-				}
-				for (int i = 0; i < scaledY; i++) {
-					newY += 1 * signY;
-					remainingSpeed--;
-				} 
-			} else {
-				for (int i = 0; i < scaledY; i++) {
-					newY += 1 * signY;
-					remainingSpeed--;
-				}
-				for (int i = 0; i < scaledX; i++) {
-					newX += 1 * signX;
-					remainingSpeed--;
-				} 
-			}
-		}
+		newX = (int)Math.round(ratioX * speed) * signX;
+		newY = (int)Math.round(ratioY * speed) * signY;
 
 		return new Velocity(newX, newY);
 	}
