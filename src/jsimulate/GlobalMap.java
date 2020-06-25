@@ -6,6 +6,8 @@ public class GlobalMap {
     private ArrayList<Puffer> pufferList;
     private ArrayList<Food> foodList;
     private ArrayList<Wall> wallList;
+    
+    private int nextFamily = 0;
 
 	public GlobalMap() {
 		this.setFoodList(new ArrayList<Food>());
@@ -77,6 +79,14 @@ public class GlobalMap {
 	
 	public void removeWalls(ArrayList<Wall> removeList) {
 		this.wallList.removeAll(removeList);
+	}
+	
+	public void add(ArrayList<Puffer> puffers) {
+		this.pufferList.addAll(puffers);
+	}
+	
+	public int getNextFamily() {
+		return nextFamily++;
 	}
 	
 }

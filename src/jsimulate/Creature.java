@@ -6,9 +6,11 @@ public abstract class Creature extends SimObject {
 	
 	protected boolean alive = true;
 	protected int speed;
+	protected int family;
 
-	public Creature(int x, int y, int size, Color color) {
+	public Creature(int x, int y, int family, int size, Color color) {
 		super(x, y, size, color);
+		this.family = family;
 	}
 	
 	public boolean isAlive() {
@@ -23,12 +25,17 @@ public abstract class Creature extends SimObject {
 		this.speed = speed;
 	}
 	
+	public int getFamily() {
+		return this.family;
+	}
+	
 	public abstract void move(GlobalMap map);
-	public abstract void bounce(boolean x, boolean y);
+	public abstract void bounce(boolean x, boolean y, GlobalMap map);
 	
-	public abstract void eat(Food food);
+	public abstract boolean eat(Food food);
 	
-	public abstract void grow(int type);
+	protected abstract boolean grow(int type);
+	
 	public abstract void die();
 	
 	//public abstract void chase(Creature creature);

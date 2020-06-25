@@ -3,6 +3,7 @@ package jsimulate;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -11,6 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 
 public class Simulation extends JFrame {
 
@@ -42,12 +44,25 @@ public class Simulation extends JFrame {
     	
         this.getContentPane().add(window,BorderLayout.CENTER);
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        JPanel textPanel = new JPanel();
+        
+       
+        JLabel nPufferLabel = new JLabel("Number of puffers:");
+        JTextField nPufferField = new JTextField("10");
+        
+        JLabel foodGenLabel = new JLabel("Food generation interval:");
+        JTextField foodGenField = new JTextField("10");
+        
+        JLabel worldSizeLabel = new JLabel("World size:");
+        JTextField worldSizeField = new JTextField("800");
+        
+        
         JButton startBtn = new JButton("Start!");
         startBtn.addActionListener(new ActionListener() {
         		public void actionPerformed(ActionEvent e) { 
    			
-        			board.start();
+        			board.start(Integer.parseInt(nPufferField.getText()),
+        					Integer.parseInt(foodGenField.getText()),
+        					Integer.parseInt(worldSizeField.getText()));
         		} 
         });
         
@@ -66,12 +81,28 @@ public class Simulation extends JFrame {
         			board.resume();
         		} 
         });
-        JLabel label1 = new JLabel("(TODO: stats)");
         
-        textPanel.add(label1);
-        textPanel.add(startBtn);
-        textPanel.add(stopBtn);
-        textPanel.add(resumeBtn);
+    	JPanel configPanel = new JPanel();
+    	configPanel.setLayout(new GridLayout(3, 2));
+    	
+    	JPanel actionPanel = new JPanel();
+        
+        	configPanel.add(nPufferLabel);
+        configPanel.add(nPufferField);
+        
+    	configPanel.add(foodGenLabel);
+        configPanel.add(foodGenField);
+        
+        configPanel.add(worldSizeLabel);
+        configPanel.add(worldSizeField);
+        
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(new GridLayout(2, 1));
+        textPanel.add(configPanel);
+        actionPanel.add(startBtn);
+        actionPanel.add(stopBtn);
+        actionPanel.add(resumeBtn);
+        textPanel.add(actionPanel);
         
         this.getContentPane().add(textPanel, BorderLayout.LINE_END);
         

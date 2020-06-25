@@ -23,23 +23,29 @@ public class Board extends JPanel implements Runnable {
 	private Thread animator;
     private GlobalMap map;
     private int globalTime = 0;
+    
+    private int foodGenInterval;
+    private int worldSize;
 
     public Board() {
     	map = new GlobalMap();
     	setBackground(Color.BLACK);
-        setPreferredSize(new Dimension(SimUtils.worldSize, SimUtils.worldSize));
+        setPreferredSize(new Dimension(SimUtils.boardSize, SimUtils.boardSize));
     }
 
-    public void start() {
+    public void start(int nPuffers, int foodGenInterval, int worldSize) {
+    	
+    	this.foodGenInterval = foodGenInterval;
+    	this.worldSize = worldSize;
 
-        	for (int i = 0; i < SimUtils.nPuffers; i++) {
-        		int xpos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-        		int ypos = ThreadLocalRandom.current().nextInt(1, SimUtils.worldSize);
-        		map.add(new Puffer(xpos, ypos, SimUtils.defaultCreatureSize));
+        	for (int i = 0; i < nPuffers; i++) {
+        		int xpos = ThreadLocalRandom.current().nextInt(1, worldSize);
+        		int ypos = ThreadLocalRandom.current().nextInt(1, worldSize);
+        		map.add(new Puffer(xpos, ypos, map.getNextFamily(), SimUtils.defaultCreatureSize, new Color(0, (float)xpos/ worldSize , 1)));
         	}
         	
-		for (int x = 0; x < SimUtils.worldSize; x++) {
-			for (int y = 0; y < SimUtils.worldSize; y++) {
+		for (int x = 0; x < worldSize; x++) {
+			for (int y = 0; y < worldSize; y++) {
 				if (ThreadLocalRandom.current().nextFloat() < SimUtils.foodDensity) {
 					map.add(SimUtils.createFood(x, y));
 				}
@@ -72,71 +78,81 @@ public class Board extends JPanel implements Runnable {
     	advanceTime();
     	
     	ArrayList<Puffer> localPuffers = map.getPufferList(); 		
+    	ArrayList<Puffer> removedPuffers = new ArrayList<Puffer>();
+    	ArrayList<Puffer> newPuffers = new ArrayList<Puffer>();	
+    	
+    	ArrayList<Food> removedFoods = new ArrayList<Food>();
+		ArrayList<Food> localFoods = map.getFoodList();
+		
+		ArrayList<Wall> localWalls = map.getWallList(); 		
+		Wall wall;
+		
+		Food food;
 		Puffer puffer;
+		Rectangle w;
+		Coord c;
+		Rectangle p;
+		Rectangle f;
 		for (int j = 0; j < localPuffers.size(); j++) {
 			puffer = localPuffers.get(j);
-    		
-    		// try to move the puffer, then check for collisions
-    		puffer.move(map);
-    		Coord c = puffer.getCoord();
-    		
-    		Rectangle p = puffer.getBounds();
-    		Rectangle w;
-    		
-    		ArrayList<Wall> localWalls = map.getWallList(); 		
-    		Wall wall;
-    		for (int i = 0; i < localWalls.size(); i++) {
-    			wall = localWalls.get(i);
-    			if (!wall.isCrumbled()) {
-    				w = wall.getBounds();
-	        			if (p.intersects(w)) {
-	        				// FIXME probably not right behavior
-	        				puffer.bounce(true, true);
-	        				// FIXME puffer won't know how to get around the wall...
-	        				//break;
-	        			}
-    			}			
-    		}
-   	
-    		// FIXME these work but are hacks
-    		if ((c.x > SimUtils.worldSize - puffer.getSize()) || (c.x < 0)) { 
-    			puffer.bounce(true, false);
-    			puffer.move(map);
-    		} 
-    		if ((c.y > SimUtils.worldSize - puffer.getSize()) || (c.y < 0)) { 
-    			puffer.bounce(false, true);
-    			puffer.move(map);
-            }
-    		
-    		ArrayList<Food> removeList = new ArrayList<Food>();
-    		ArrayList<Food> localFoods = map.getFoodList();
-    		
-    		Food food;
-    		
-    		for (int i = 0; i < localFoods.size(); i++) {
-    			
-    			food = localFoods.get(i);
-    			
-    			Rectangle f = food.getBounds();
-    			
-    			if (p.intersects(f)) {
-    				// Food got eaten!
-    				puffer.eat(food);
-    				removeList.add(food);
-    			}
-    		}
-    		
-    		map.removeFoods(removeList);
-    		
-    		for (Puffer puffer2 : map.getPufferList()) {
-    			if (puffer2 != puffer) {
-    				Rectangle p2 = puffer2.getBounds();
-	        			if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
-	        				puffer.die();
-	        			}
-    			}	
-    		}	
+			if (!puffer.isAlive()) {
+				//removedPuffers.add(puffer);
+				continue;
+			} else {
+				// try to move the puffer, then check for collisions
+				puffer.move(map);
+				c = puffer.getCoord();		
+				p = puffer.getBounds();
+				
+				for (int i = 0; i < localWalls.size(); i++) {
+					wall = localWalls.get(i);
+					if (!wall.isCrumbled()) {
+						w = wall.getBounds();
+						if (p.intersects(w)) {
+							//puffer.addLastLocation(c);
+							puffer.bounce(true, true, map);
+							//puffer.goAroundWall(wall);
+						}
+					}			
+				}
+				
+				// FIXME these work but are hacks
+				if ((c.x > worldSize - puffer.getSize()) || (c.x < 0)) { 
+					puffer.bounce(true, false, map);
+					puffer.move(map);
+				} 
+				if ((c.y > worldSize - puffer.getSize()) || (c.y < 0)) { 
+					puffer.bounce(false, true, map);
+					puffer.move(map);
+				}
+	
+				for (int i = 0; i < localFoods.size(); i++) {				
+					food = localFoods.get(i);			
+					f = food.getBounds();
+					
+					if (p.intersects(f)) {
+						// Food got eaten!
+						if (puffer.eat(food)) { // FIXME this means "if puffer reproduced"
+							newPuffers.addAll(puffer.reproduce());
+						}
+						removedFoods.add(food);
+					}
+				}
+				
+				for (Puffer puffer2 : map.getPufferList()) {
+					if ((puffer2 != puffer) && (puffer2.isAlive()) && (puffer2.getFamily() != puffer.getFamily())) {
+						Rectangle p2 = puffer2.getBounds();
+						if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
+							puffer.die();
+						}
+					}	
+				}
+			}  			
     	}   
+		
+		map.removeFoods(removedFoods);
+		map.removePuffers(removedPuffers);
+		map.add(newPuffers);
     }
 
     @Override
@@ -307,10 +323,10 @@ public class Board extends JPanel implements Runnable {
 		
 		globalTime++;
 		
-		if (globalTime % SimUtils.foodGenerationInterval == 0) {
+		if (globalTime % foodGenInterval == 0) {
 			/* create some new food */
 			for (int i = 0; i < SimUtils.foodsPerGeneration; i++) {
-		    	map.add(SimUtils.createFood());
+		    	map.add(SimUtils.createFood(worldSize));
 			}
 		}
 	}
