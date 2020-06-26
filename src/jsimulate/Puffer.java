@@ -1,9 +1,25 @@
 package jsimulate;
 import java.awt.Color;
+
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * The Puffer class is a fully implemented Creature. What makes it unique are the rules for its
+ * movement, and how it eats, grows, dies, and reproduces.
+ * 
+ * General facts about puffers:
+ *   - Puffers like Food
+ *   - Larger puffers will attack smaller ones if they are not in the same family
+ *   - Newborn puffers have poor eyesight, but this improves as they grow
+ *   - Puffers are able to navigate walls and the edges of the world fairly well
+ *   - Eating food allows puffers to grow, increasing their size, speed, and eyesight
+ *   - After a certain number of growth cycles, puffers will reproduce and die
+ * @author johncmerfeld
+ *
+ */
 
 public class Puffer extends Creature {
 	
@@ -76,12 +92,7 @@ public class Puffer extends Creature {
 		}
 		
 		starvationClock++;
-		
-	//	System.out.println(lastLocations);
-	//	System.out.println(coord);
-		
-		//this.lastLocations.add(coord);
-		
+
 		if (!nextMoves.isEmpty()) {
 			this.executeMove(nextMoves.get(0), map);
 			nextMoves.remove(0);
@@ -90,8 +101,11 @@ public class Puffer extends Creature {
 		
 		// if being chased, run away!!
 		if (predator != null) {
-			moveAwayFrom(predator.getCoord(), map);
-			return;
+			if (predator.getPrey().equals(this)) {
+				moveAwayFrom(predator.getCoord(), map);
+				return;
+			}
+			
 		}
 		
 		/*
@@ -172,45 +186,66 @@ public class Puffer extends Creature {
 	
 	private void executeMove(Move move, GlobalMap map) {
 		boolean wallTrouble = false;
+		boolean edgeTrouble = false;
 		Coord origin = coord;
 		Move probe = move;
 		ArrayList<Wall> localWalls = map.getWallList();
+		ArrayList<Move> alreadyTrieds = new ArrayList<Move>();
 		Wall wall;
 		Rectangle w;
 		Rectangle p;
+		
+		this.setCoord(new Coord(origin.x + probe.x, origin.y + probe.y));	
+		if ((coord.x > map.getWorldSize() - size) || (coord.x < 0) || (coord.y > map.getWorldSize() - size) || (coord.y < 0)) {
+			edgeTrouble = true;
+			alreadyTrieds.add(probe);
+			ArrayList<Move> nextBestMoves = SimUtils.mostSimilarMoves(probe, speed, alreadyTrieds);
+			for (Move nextBestMove : nextBestMoves) {	
+				this.setCoord(new Coord(origin.x + nextBestMove.x, origin.y + nextBestMove.y));
+				if ((coord.x <= map.getWorldSize() - size) && (coord.x >= 0) && (coord.y <= map.getWorldSize() - size) && (coord.y >= 0)) {			
+					probe = nextBestMove;
+					break;
+				}		
+			}
+		} 
+		
 		for (int i = 0; i < localWalls.size(); i++) {
 			wall = localWalls.get(i);
-			this.setCoord(new Coord(coord.x + probe.x, coord.y + probe.y));
+			if (wall.isCrumbled()) {
+				continue;
+			}
+			this.setCoord(new Coord(origin.x + probe.x, origin.y + probe.y));
 			p = this.getBounds();
 			w = wall.getBounds();
 			if (p.intersects(w)) {
+				alreadyTrieds.add(probe);
 				wallTrouble = true;
-				ArrayList<Move> nextBestMoves = SimUtils.mostSimilarMoves(probe, speed);
-				for (Move nextBestMove : nextBestMoves) {
-					this.setCoord(origin);		
-					this.setCoord(new Coord(coord.x + nextBestMove.x, coord.y + nextBestMove.y));
+				ArrayList<Move> nextBestMoves = SimUtils.mostSimilarMoves(probe, speed, alreadyTrieds);
+				for (Move nextBestMove : nextBestMoves) {	
+					this.setCoord(new Coord(origin.x + nextBestMove.x, origin.y + nextBestMove.y));
 					p = this.getBounds();
 					if (!p.intersects(w)) {			
 						probe = nextBestMove;
 						i = -1;
 						break;
-					}
+					}		
 				}
 			}
-			this.setCoord(origin);
 		}
-		Coord destination = new Coord(coord.x + probe.x, coord.y + probe.y);
+		Coord destination = new Coord(origin.x + probe.x, origin.y + probe.y);
 		for (Coord lastLocation : lastLocations) {
 			if ((destination.x == lastLocation.x) && (destination.y == lastLocation.y)) {
 				/* FIXME this is totally fucked */
-				destination = new Coord(coord.x - probe.x, coord.y - probe.y);
+				destination = new Coord(origin.x - probe.x, origin.y - probe.y);
 				this.setCoord(destination); 
 			}
 		}	
 		this.setCoord(destination);
-		if (wallTrouble) {
+		if ((wallTrouble) || (edgeTrouble)) {
 			lastLocations.add(destination);
 		}
+		
+		this.setVelocity(new Velocity(probe.x, probe.y));
 	}
 	
 	/* 
@@ -270,90 +305,7 @@ public class Puffer extends Creature {
 		}	
 		return minIndex;	
 	}
-	
-	/*
-	public void goAroundWall(Wall wall) {
-		if (!nextMoves.isEmpty()) {
-			this.executeMove(nextMoves.get(0), );
-			nextMoves.remove(0);
-			return;
-		}
-		System.out.println("Going around wall...");
-		// determine where the wall is relative to me
-		Coord c = wall.getCoord();
-		int wallSize = wall.getSize();
-		
-		System.out.println(c);
-		System.out.println(coord);
-		boolean isRightward = c.x >= coord.x + size;
-		System.out.println(isRightward);
-		boolean isLeftward = c.x + wallSize <= coord.x;
-		System.out.println(isLeftward);
-		boolean isBelow = c.y >= coord.y + size;
-		System.out.println(isBelow);
-		boolean isAbove = c.y + wallSize <= coord.y;
-		System.out.println(isAbove);
-		
-		boolean moveDown, moveUp, moveRight, moveLeft;
-		moveDown = moveUp = moveRight = moveLeft = false;
-		
-		int downMoves, upMoves, rightMoves, leftMoves;
-		downMoves = upMoves = rightMoves = leftMoves = 0;
-		int nMoves = 0;
-		
-		// determine what moves I'd need to make to get around the wall
-		if ((isRightward) || (isLeftward)) {
-			System.out.println("Horizontal blockage - move up or down");
-			downMoves = c.y + wallSize - coord.y + 1;
-			upMoves = coord.y + size - c.y + 1;
-			
-			moveDown = velocity.y > 0;
-			moveUp = velocity.y < 0;
-			System.out.println(moveDown);
-		}
-		if ((isAbove) || (isBelow)) {
-			System.out.println("Veritcal blockage - move left or right");
-			rightMoves = c.x + wallSize - coord.x + 1;
-			leftMoves = coord.x + size - c.x + 1;
-			
-			moveRight = velocity.x > 0;
-			moveLeft = velocity.x < 0;
-			
-			System.out.println(moveRight);
-		}
-		
-		if (moveUp) {
-			System.out.println(upMoves);
-			nMoves = (int) Math.ceil((double)upMoves / speed);
-			for (int i = 0; i < nMoves; i++) {
-				nextMoves.add(new Move(0, -speed));
-			}
-		}
-		if (moveDown) {
-			System.out.println(downMoves);
-			nMoves = (int) Math.ceil((double)downMoves / speed);
-			for (int i = 0; i < nMoves; i++) {
-				nextMoves.add(new Move(0, speed));
-			}
-		}
-		if (moveLeft) {
-			System.out.println(leftMoves);
-			nMoves = (int) Math.ceil((double)leftMoves / speed);
-			for (int i = 0; i < nMoves; i++) {
-				nextMoves.add(new Move(-speed, 0));
-			}
-		}
-		if (moveRight) {
-			System.out.println(rightMoves);
-			nMoves = (int) Math.ceil((double)rightMoves / speed);
-			for (int i = 0; i < nMoves; i++) {
-				nextMoves.add(new Move(speed, 0));
-			}
-		}
-		//System.out.println(nMoves);
-	}
-	*/
-	
+
 	@Override
 	public boolean eat(Food food) {
 		if (!alive) {
@@ -499,5 +451,9 @@ public class Puffer extends Creature {
 	
 	public void addLastLocation(Coord c) {
 		lastLocations.add(c);
+	}
+	
+	public Puffer getPrey() {
+		return this.prey;
 	}
 }

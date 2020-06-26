@@ -3,8 +3,8 @@ package jsimulate;
 import java.awt.Color;
 import java.awt.Rectangle;
 
-/*
- * Abstract class for everything that might appear on the map
+/**
+ * The SimObject class is an abstract class for everything that might appear on the map
  * Current inheritors are:
  *   - CREATURES
  *   	- Puffer

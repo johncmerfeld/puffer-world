@@ -2,17 +2,26 @@ package jsimulate;
 
 import java.util.ArrayList;
 
+/**
+ * The GlobalMap class tracks all of the objects residing in the simulation.
+ * It can be used as a reference to calculate distances, apply changes, etc.
+ * @author johncmerfeld
+ *
+ */
+
 public class GlobalMap {
     private ArrayList<Puffer> pufferList;
     private ArrayList<Food> foodList;
     private ArrayList<Wall> wallList;
     
     private int nextFamily = 0;
+    private int worldSize;
 
-	public GlobalMap() {
+	public GlobalMap(int worldSize) {
 		this.setFoodList(new ArrayList<Food>());
 		this.setPufferList(new ArrayList<Puffer>());	
 		this.setWallList(new ArrayList<Wall>());
+		this.setWorldSize(worldSize);
 	}
 
 	/**
@@ -87,6 +96,20 @@ public class GlobalMap {
 	
 	public int getNextFamily() {
 		return nextFamily++;
+	}
+
+	/**
+	 * @return the worldSize
+	 */
+	public int getWorldSize() {
+		return worldSize;
+	}
+
+	/**
+	 * @param worldSize the worldSize to set
+	 */
+	public void setWorldSize(int worldSize) {
+		this.worldSize = worldSize;
 	}
 	
 }

@@ -2,6 +2,13 @@ package jsimulate;
 
 import java.awt.Color;
 
+/**
+ * The Creature class is a parent class for living things. Any living SimObject,
+ * such as a puffer, must be able to perform these actions
+ * @author johncmerfeld
+ *
+ */
+
 public abstract class Creature extends SimObject {
 	
 	protected boolean alive = true;
@@ -33,11 +40,6 @@ public abstract class Creature extends SimObject {
 	public abstract void bounce(boolean x, boolean y, GlobalMap map);
 	
 	public abstract boolean eat(Food food);
-	
 	protected abstract boolean grow(int type);
-	
 	public abstract void die();
-	
-	//public abstract void chase(Creature creature);
-
 }

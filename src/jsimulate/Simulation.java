@@ -1,8 +1,8 @@
 package jsimulate;
 
 import java.awt.BorderLayout;
+
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,6 +13,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+
+/** The Simulation class is the UI for the simulator. It contains the view of the board, and the user's interactions with it
+ * 
+ * @author johncmerfeld
+ *
+ */
 
 public class Simulation extends JFrame {
 
@@ -35,9 +41,6 @@ public class Simulation extends JFrame {
     	window.getHorizontalScrollBar().setUnitIncrement(16);
     	window.getVerticalScrollBar().setUnitIncrement(16);
     	
-    	//window.setPreferredSize(new Dimension(SimUtils.worldSize + 50, SimUtils.worldSize + 50));
-    	//setPreferredSize(new Dimension(SimUtils.worldSize + 250, SimUtils.worldSize + 60));
-    	
     	window.validate();
     	Dimension d = window.getPreferredSize();
         d.setSize(d.width, d.height);
@@ -45,7 +48,6 @@ public class Simulation extends JFrame {
         this.getContentPane().add(window,BorderLayout.CENTER);
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         
-       
         JLabel nPufferLabel = new JLabel("Number of puffers:");
         JTextField nPufferField = new JTextField("10");
         
@@ -54,7 +56,6 @@ public class Simulation extends JFrame {
         
         JLabel worldSizeLabel = new JLabel("World size:");
         JTextField worldSizeField = new JTextField("800");
-        
         
         JButton startBtn = new JButton("Start!");
         startBtn.addActionListener(new ActionListener() {
@@ -116,7 +117,6 @@ public class Simulation extends JFrame {
         setTitle("Puffer World");    
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);     
-        //board.runBoard();
-    }
 
+    }
 }

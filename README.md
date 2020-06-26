@@ -1,5 +1,18 @@
 ## Version history
 
+### Version 5.0 (June 26th):
+  - **New behavior: Reproduction**
+    - After a certain number of growth spurts, puffers die and produce offspring 
+    - Number of offspring is proportional to size at time of death
+    - Successive generations with same ancestry will not attack one another
+  - **Simulator UI: Input parameters**
+    - Enter the number of puffers, food generation interval, and world size
+    - Press 'start' and see your world come to life!
+  - **Performance improvements:**
+    - Puffers now much more adept at getting around walls
+    - Puffers no longer run off the edge of the map when being chased
+    - Puffers better at charting a path away from predators when near walls and edges
+
 ### Version 4.0 (June 24th):
   - **Simulator UI: Pause, resume, and (buggy) restart**
   - **New behavior: Starvation**

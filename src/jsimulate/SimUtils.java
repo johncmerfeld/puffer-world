@@ -56,11 +56,15 @@ public class SimUtils {
 		return new Velocity(newX, newY);
 	}
 	
-	public static ArrayList<Move> mostSimilarMoves(Move move, int speed) {
+	public static ArrayList<Move> mostSimilarMoves(Move move, int speed, ArrayList<Move> ignores) {
 		ArrayList<Move> nextBestMoves = new ArrayList<Move>();
+		Move newMove;
 		for (int i = -speed; i <= speed; i++) {
 			for (int j = -speed; j <= speed; j++) {
-				nextBestMoves.add(new Move(i,j));
+				newMove = new Move(i,j);
+				if (!ignores.contains(newMove)) {
+					nextBestMoves.add(newMove);
+				}		
 			}
 		}
 		Collections.sort(nextBestMoves, new VectorComparator(move));

@@ -2,6 +2,14 @@ package jsimulate;
 
 import java.awt.Color;
 
+/**
+ * The Wall class is an object on the map through which puffers cannot pass.
+ * 
+ * After a while, walls will crumble - though they remain visible, they will no longer impede movement
+ * @author johncmerfeld
+ *
+ */
+
 public class Wall extends SimObject {
 	
 	private boolean crumbled = false;
@@ -35,7 +43,7 @@ public class Wall extends SimObject {
 	 */
 	public void crumble() {
 		this.crumbled = true;
-		this.color = Color.GRAY;
+		this.color = Color.DARK_GRAY;
 	}
 
 }

@@ -1,7 +1,13 @@
 package jsimulate;
 
 import java.awt.Color;
-import java.awt.Rectangle;
+
+/**
+ * The Food class is a non-living object that provides nourishment to puffers.
+ * If it is not eaten within a certain time frame, it rots
+ * @author johncmerfeld
+ *
+ */
 
 public class Food extends EnvObject  {
 	

@@ -13,148 +13,67 @@ import javax.swing.JOptionPane;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * The Board class houses the entire simulation. Its responsibilities include:
+ *   - Running the thread of animation
+ *   - Repainting the objects in the world as visible components 
+ *   - Inducing transformations that occur between objects or over time
+ *     - This last point should probably be moved
+ * @author johncmerfeld
+ *
+ */
+
 public class Board extends JPanel implements Runnable {
 
 	private static final long serialVersionUID = 1L;
-	
+
+	/* for running the simulation */
 	private volatile boolean running = true;
     private volatile boolean paused = false;
     private final Object pauseLock = new Object();
 	private Thread animator;
+	
+	/* properties of the world */
+	private int foodGenInterval;
+    private int worldSize;
     private GlobalMap map;
+    
+    /* realtime attributes */
     private int globalTime = 0;
     
-    private int foodGenInterval;
-    private int worldSize;
-
     public Board() {
-    	map = new GlobalMap();
+    	map = new GlobalMap(SimUtils.boardSize);
     	setBackground(Color.BLACK);
         setPreferredSize(new Dimension(SimUtils.boardSize, SimUtils.boardSize));
     }
-
+    
+    /**
+     * Begin the simulation with the specified parameters
+     * @param nPuffers
+     * @param foodGenInterval
+     * @param worldSize
+     */
     public void start(int nPuffers, int foodGenInterval, int worldSize) {
-    	
+    	  	
     	this.foodGenInterval = foodGenInterval;
     	this.worldSize = worldSize;
-
+    	map.setWorldSize(worldSize);
+    	
+    	/* randomly place initial puffers */
         	for (int i = 0; i < nPuffers; i++) {
         		int xpos = ThreadLocalRandom.current().nextInt(1, worldSize);
         		int ypos = ThreadLocalRandom.current().nextInt(1, worldSize);
         		map.add(new Puffer(xpos, ypos, map.getNextFamily(), SimUtils.defaultCreatureSize, new Color(0, (float)xpos/ worldSize , 1)));
         	}
-        	
-		for (int x = 0; x < worldSize; x++) {
-			for (int y = 0; y < worldSize; y++) {
-				if (ThreadLocalRandom.current().nextFloat() < SimUtils.foodDensity) {
-					map.add(SimUtils.createFood(x, y));
-				}
-			}
-		}
 
 		animator = new Thread(this);
         animator.start();
     }
 
-	@Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        
-        drawMap(g);
-        	for (Puffer puffer : map.getPufferList()) {
-        		drawPuffer(g, puffer);
-        	}
-    }
-	
-	 private void drawPuffer(Graphics g, Puffer puffer) {
-	    	g.setColor(puffer.getColor());
-	    	Coord c = puffer.getCoord();
-	    	int pSize = puffer.getSize();
-	    	g.fillRect(c.x, c.y, pSize, pSize);
-    }
-
-    private void cycle() {
-    	
-    	advanceTime();
-    	
-    	ArrayList<Puffer> localPuffers = map.getPufferList(); 		
-    	ArrayList<Puffer> removedPuffers = new ArrayList<Puffer>();
-    	ArrayList<Puffer> newPuffers = new ArrayList<Puffer>();	
-    	
-    	ArrayList<Food> removedFoods = new ArrayList<Food>();
-		ArrayList<Food> localFoods = map.getFoodList();
-		
-		ArrayList<Wall> localWalls = map.getWallList(); 		
-		Wall wall;
-		
-		Food food;
-		Puffer puffer;
-		Rectangle w;
-		Coord c;
-		Rectangle p;
-		Rectangle f;
-		for (int j = 0; j < localPuffers.size(); j++) {
-			puffer = localPuffers.get(j);
-			if (!puffer.isAlive()) {
-				//removedPuffers.add(puffer);
-				continue;
-			} else {
-				// try to move the puffer, then check for collisions
-				puffer.move(map);
-				c = puffer.getCoord();		
-				p = puffer.getBounds();
-				
-				for (int i = 0; i < localWalls.size(); i++) {
-					wall = localWalls.get(i);
-					if (!wall.isCrumbled()) {
-						w = wall.getBounds();
-						if (p.intersects(w)) {
-							//puffer.addLastLocation(c);
-							puffer.bounce(true, true, map);
-							//puffer.goAroundWall(wall);
-						}
-					}			
-				}
-				
-				// FIXME these work but are hacks
-				if ((c.x > worldSize - puffer.getSize()) || (c.x < 0)) { 
-					puffer.bounce(true, false, map);
-					puffer.move(map);
-				} 
-				if ((c.y > worldSize - puffer.getSize()) || (c.y < 0)) { 
-					puffer.bounce(false, true, map);
-					puffer.move(map);
-				}
-	
-				for (int i = 0; i < localFoods.size(); i++) {				
-					food = localFoods.get(i);			
-					f = food.getBounds();
-					
-					if (p.intersects(f)) {
-						// Food got eaten!
-						if (puffer.eat(food)) { // FIXME this means "if puffer reproduced"
-							newPuffers.addAll(puffer.reproduce());
-						}
-						removedFoods.add(food);
-					}
-				}
-				
-				for (Puffer puffer2 : map.getPufferList()) {
-					if ((puffer2 != puffer) && (puffer2.isAlive()) && (puffer2.getFamily() != puffer.getFamily())) {
-						Rectangle p2 = puffer2.getBounds();
-						if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
-							puffer.die();
-						}
-					}	
-				}
-			}  			
-    	}   
-		
-		map.removeFoods(removedFoods);
-		map.removePuffers(removedPuffers);
-		map.add(newPuffers);
-    }
-
+    /**
+     * This method ensures that the animation is smooth.
+     * It runs the cycle() and repaint() methods and forces them onto a specific cadence
+     */
     @Override
     public void run() {
 
@@ -200,12 +119,9 @@ public class Board extends JPanel implements Runnable {
 
             try {
                 Thread.sleep(sleep);
-            } catch (InterruptedException e) {
-                
-                String msg = String.format("Thread interrupted: %s", e.getMessage());
-                
-                JOptionPane.showMessageDialog(this, msg, "Error", 
-                    JOptionPane.ERROR_MESSAGE);
+            } catch (InterruptedException e) {          
+                String msg = String.format("Thread interrupted: %s", e.getMessage());            
+                JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
             }
 
             beforeTime = System.currentTimeMillis();
@@ -231,48 +147,134 @@ public class Board extends JPanel implements Runnable {
             pauseLock.notifyAll(); // Unblocks thread
         }
     }
-	
-	private void drawMap(Graphics g) {
-		Graphics2D g2d = (Graphics2D) g;
+    
+    /**
+     * This method is for painting the map. Food on the bottom, then walls, then puffers
+     * @param g
+     */
+	@Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        	/* render overall map */
+        Graphics2D g2d = (Graphics2D) g;
+        RenderingHints rh = new RenderingHints(RenderingHints.KEY_ANTIALIASING,
+        		RenderingHints.VALUE_ANTIALIAS_ON);
 
-        RenderingHints rh
-                = new RenderingHints(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-
-        rh.put(RenderingHints.KEY_RENDERING,
-                RenderingHints.VALUE_RENDER_QUALITY);
+        rh.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
         g2d.setRenderingHints(rh);
         
+        	/* populate map */
         	Coord c;
+        	Food food;
+        	Wall wall;
+        	Puffer puffer;
+        	int size;
         	
-        	ArrayList<Food> localFoods = map.getFoodList(); 		
-		Food food;	
+        	ArrayList<Food> localFoods = map.getFoodList();
+        	ArrayList<Wall> localWalls = map.getWallList(); 
+        	ArrayList<Puffer> localPuffers = map.getPufferList();
+			
 		for (int i = 0; i < localFoods.size(); i++) {
 			food = localFoods.get(i);
 			g.setColor(food.getColor());
     		c = food.getCoord();
-    		g.fillRect(c.x, c.y, food.getSize(), food.getSize());
-		}
-		
-		ArrayList<Wall> localWalls = map.getWallList(); 		
-		Wall wall;
+    		size = food.getSize();
+    		g.fillRect(c.x, c.y, size, size);
+		}	
+				
 		for (int i = 0; i < localWalls.size(); i++) {
 			wall = localWalls.get(i);
 			g.setColor(wall.getColor());
     		c = wall.getCoord();
-    		g.fillRect(c.x, c.y, wall.getSize(), wall.getSize());
+    		size = wall.getSize();
+    		g.fillRect(c.x, c.y, size, size);
 		}
-	}
+		
+		for (int i = 0; i < localPuffers.size(); i++) {
+			puffer = localPuffers.get(i);
+			g.setColor(puffer.getColor());
+    		c = puffer.getCoord();
+    		size = puffer.getSize();
+    		g.fillRect(c.x, c.y, size, size);
+		}
+    }
+
+	/**
+	 * This method is for advancing the action of the board, including:
+	 *   - Moving every puffer
+	 *   - Monitoring when puffers eat food and attack one another
+	 *   - Monitoring puffer reproduction
+	 */
+    private void cycle() {
+    	
+    	advanceTime();
+    	
+    	ArrayList<Puffer> localPuffers = map.getPufferList(); 		
+    	ArrayList<Puffer> removedPuffers = new ArrayList<Puffer>();
+    	ArrayList<Puffer> newPuffers = new ArrayList<Puffer>();	
+    	
+    	ArrayList<Food> removedFoods = new ArrayList<Food>();
+		ArrayList<Food> localFoods = map.getFoodList();
+			
+		Food food;
+		Puffer puffer;
+		Rectangle p;
+		Rectangle f;
+		for (int j = 0; j < localPuffers.size(); j++) {
+			puffer = localPuffers.get(j);
+			if (!puffer.isAlive()) {
+				continue;
+			} else {
+				// try to move the puffer, then check for collisions
+				puffer.move(map);	
+				p = puffer.getBounds();
 	
+				for (int i = 0; i < localFoods.size(); i++) {				
+					food = localFoods.get(i);			
+					f = food.getBounds();
+					
+					if (p.intersects(f)) {
+						// Food got eaten!
+						if (puffer.eat(food)) { // FIXME this means "if puffer reproduced"
+							newPuffers.addAll(puffer.reproduce());
+						}
+						removedFoods.add(food);
+					}
+				}
+				
+				for (Puffer puffer2 : map.getPufferList()) {
+					if ((puffer2 != puffer) && (puffer2.isAlive()) && (puffer2.getFamily() != puffer.getFamily())) {
+						Rectangle p2 = puffer2.getBounds();
+						if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
+							puffer.die();
+						}
+					}	
+				}
+			}  			
+    	}   
+		
+		map.removeFoods(removedFoods);
+		map.removePuffers(removedPuffers);
+		map.add(newPuffers);
+    }
+    
+    /**
+     * This method is for advancing the global clock, which tracks:
+     *   - When new food should be generated
+     *   - When uneaten food should "rot" and become a wall
+     *   - When old walls should "crumble"
+     *   - When dead puffers should "decay" and become food
+     * And carrying out those transformations
+     */
 	private void advanceTime() {
 		
-		/* make some food rot */
 		ArrayList<Puffer> decayedPuffers = new ArrayList<Puffer>();
 		ArrayList<Food> rottenFoods = new ArrayList<Food>();
 		ArrayList<Food> localFoods = map.getFoodList();
-		
 		Food food;
+		Coord c;
 		
 		for (int i = 0; i < localFoods.size(); i++) {		
 			food = localFoods.get(i);
@@ -280,9 +282,7 @@ public class Board extends JPanel implements Runnable {
 				rottenFoods.add(food);
 			}
 		}
-		
-		Coord c;
-		
+			
 		for (Food rottenFood : rottenFoods) {
 			c = rottenFood.getCoord();
 			map.add(new Wall(c.x, c.y, rottenFood.getSize()));
