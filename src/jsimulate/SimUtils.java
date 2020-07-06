@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class SimUtils {
 	public static int scaleFactor = 1;
 	public static int nPuffers = 3;
+	public static int nScoopers = 1;
 	public static double foodDensity = 0.00001;
 	public static double wallDensity = 0.00002;
 	public static int worldSize = 800;
@@ -15,6 +16,7 @@ public class SimUtils {
 	
 	public static int defaultCreatureSize = 8;
 	public static int defaultEnvObjectSize = 6;
+	public static int defaultHomeSize = 12;
 	
 	public static int foodsPerGeneration = 1;
 	public static int foodGenerationInterval = 5;

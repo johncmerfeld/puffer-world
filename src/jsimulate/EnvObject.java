@@ -9,9 +9,19 @@ import java.awt.Color;
  */
 
 public abstract class EnvObject extends SimObject {
+	
+	public boolean solid = true;
 
 	public EnvObject(int x, int y, int size, Color color) {
 		super(x, y, size, color);
+	}
+	
+	public void crumble() {
+		solid = false;
+	}
+	
+	public boolean isSolid() {
+		return solid;
 	}
 
 }

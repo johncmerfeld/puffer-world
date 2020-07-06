@@ -4,10 +4,13 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Stroke;
 
 import javax.swing.JPanel;
+
+import java.awt.BasicStroke;
+
 import javax.swing.JOptionPane;
 
 import java.util.ArrayList;
@@ -53,14 +56,34 @@ public class Board extends JPanel implements Runnable {
      * @param foodGenInterval
      * @param worldSize
      */
-    public void start(int nPuffers, int foodGenInterval, int worldSize) {
+    public void start(int nPuffers, int nScoopers, int foodGenInterval, int worldSize) {
     	  	
     	this.foodGenInterval = foodGenInterval;
     	this.worldSize = worldSize;
     	map.setWorldSize(worldSize);
     	
-    	/* randomly place initial puffers */
-        	for (int i = 0; i < nPuffers; i++) {
+    	int remainingPuffers = nPuffers;
+        	
+        	/* randomly place initial homes, and add scoopers and puffers */
+        	for (int i = 0; i < nScoopers; i++) {
+        		int xpos = ThreadLocalRandom.current().nextInt(1, worldSize);
+        		int ypos = ThreadLocalRandom.current().nextInt(1, worldSize);
+
+        		int family = map.getNextFamily();
+        		Color color = new Color(0, (float)xpos/ worldSize, 1);
+   
+        		Home home = new Home(xpos, ypos, family, SimUtils.defaultHomeSize, color);
+        		map.add(home);
+        		// FIXME update scooper color
+        		map.add(new Scooper(xpos, ypos, family, SimUtils.defaultCreatureSize, color, home));
+        		if (remainingPuffers > 0) {
+        			map.add(new Puffer(xpos, ypos, family, SimUtils.defaultCreatureSize, color));
+        			remainingPuffers--;
+        		}
+        	}
+        	
+        	/* randomly place remaining puffers */
+        	for (int i = 0; i < remainingPuffers; i++) {
         		int xpos = ThreadLocalRandom.current().nextInt(1, worldSize);
         		int ypos = ThreadLocalRandom.current().nextInt(1, worldSize);
         		map.add(new Puffer(xpos, ypos, map.getNextFamily(), SimUtils.defaultCreatureSize, new Color(0, (float)xpos/ worldSize , 1)));
@@ -167,37 +190,38 @@ public class Board extends JPanel implements Runnable {
         
         	/* populate map */
         	Coord c;
-        	Food food;
-        	Wall wall;
-        	Puffer puffer;
         	int size;
         	
-        	ArrayList<Food> localFoods = map.getFoodList();
-        	ArrayList<Wall> localWalls = map.getWallList(); 
-        	ArrayList<Puffer> localPuffers = map.getPufferList();
 			
-		for (int i = 0; i < localFoods.size(); i++) {
-			food = localFoods.get(i);
-			g.setColor(food.getColor());
-    		c = food.getCoord();
-    		size = food.getSize();
-    		g.fillRect(c.x, c.y, size, size);
+		for (EnvObject object : map.getObjectList()) {
+			g2d.setColor(object.getColor());
+    		c = object.getCoord();
+    		size = object.getSize();
+    		g2d.fillRect(c.x, c.y, size, size);
+    		if (object instanceof Home) {
+    			g2d.setColor(Color.LIGHT_GRAY);
+    			float thickness = 2;
+    			Stroke oldStroke = g2d.getStroke();
+    			g2d.setStroke(new BasicStroke(thickness, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0));
+    			g2d.drawRect(c.x, c.y, size, size);
+    			g2d.setStroke(oldStroke);
+    		}
 		}	
-				
-		for (int i = 0; i < localWalls.size(); i++) {
-			wall = localWalls.get(i);
-			g.setColor(wall.getColor());
-    		c = wall.getCoord();
-    		size = wall.getSize();
-    		g.fillRect(c.x, c.y, size, size);
-		}
+
 		
-		for (int i = 0; i < localPuffers.size(); i++) {
-			puffer = localPuffers.get(i);
-			g.setColor(puffer.getColor());
-    		c = puffer.getCoord();
-    		size = puffer.getSize();
-    		g.fillRect(c.x, c.y, size, size);
+		for (Creature creature : map.getCreatureList()) {
+			g2d.setColor(creature.getColor());
+    		c = creature.getCoord();
+    		size = creature.getSize();
+    		g2d.fillRect(c.x, c.y, size, size);
+    		if (creature instanceof Scooper) {
+    			if (((Scooper) creature).carryingFood()) {
+    				Food f = ((Scooper) creature).getFood();
+    				g2d.setColor(f.getColor());
+    	    		size = f.getSize();
+    	    		g2d.fillRect(c.x, c.y, size, size);
+    			}
+    		}
 		}
     }
 
@@ -210,54 +234,48 @@ public class Board extends JPanel implements Runnable {
     private void cycle() {
     	
     	advanceTime();
-    	
-    	ArrayList<Puffer> localPuffers = map.getPufferList(); 		
-    	ArrayList<Puffer> removedPuffers = new ArrayList<Puffer>();
-    	ArrayList<Puffer> newPuffers = new ArrayList<Puffer>();	
-    	
-    	ArrayList<Food> removedFoods = new ArrayList<Food>();
-		ArrayList<Food> localFoods = map.getFoodList();
-			
-		Food food;
-		Puffer puffer;
-		Rectangle p;
-		Rectangle f;
-		for (int j = 0; j < localPuffers.size(); j++) {
-			puffer = localPuffers.get(j);
-			if (!puffer.isAlive()) {
+    		
+    	ArrayList<Creature> removedCreatures = new ArrayList<Creature>();
+    	ArrayList<Creature> newCreatures = new ArrayList<Creature>();
+    	ArrayList<Creature> globalCreatures = map.getCreatureList();
+    	ArrayList<EnvObject> removedObjects = new ArrayList<EnvObject>();
+		ArrayList<EnvObject> globalFoods = map.getAllOfType(Food.class);
+		
+		Creature creature;
+
+		for (int j = 0; j < globalCreatures.size(); j++) {
+			creature = globalCreatures.get(j);
+			if (!creature.isAlive()) {
 				continue;
 			} else {
-				// try to move the puffer, then check for collisions
-				puffer.move(map);	
-				p = puffer.getBounds();
+				// try to move the creature, then check for collisions
+				creature.move(map);	
 	
-				for (int i = 0; i < localFoods.size(); i++) {				
-					food = localFoods.get(i);			
-					f = food.getBounds();
+				for (EnvObject food : globalFoods) {						
 					
-					if (p.intersects(f)) {
+					if (creature.intersects(food)) {
 						// Food got eaten!
-						if (puffer.eat(food)) { // FIXME this means "if puffer reproduced"
-							newPuffers.addAll(puffer.reproduce());
+						// FIXME should all creatures eat food?
+						if (creature.eat((Food) food)) { // FIXME this means "if puffer reproduced"
+							newCreatures.addAll(creature.reproduce());
 						}
-						removedFoods.add(food);
+						removedObjects.add(food);
 					}
 				}
 				
-				for (Puffer puffer2 : map.getPufferList()) {
-					if ((puffer2 != puffer) && (puffer2.isAlive()) && (puffer2.getFamily() != puffer.getFamily())) {
-						Rectangle p2 = puffer2.getBounds();
-						if ((p.intersects(p2)) && (puffer2.getSize() > puffer.getSize())) {
-							puffer.die();
+				for (Creature creature2 : map.getCreatureList()) {
+					if ((creature2 != creature) && (creature2.isAlive()) && (!creature.isRelatedTo(creature2))) {
+						if ((creature.intersects(creature2)) && (creature2.getSize() > creature.getSize())) {
+							creature.die();
 						}
 					}	
 				}
 			}  			
     	}   
 		
-		map.removeFoods(removedFoods);
-		map.removePuffers(removedPuffers);
-		map.add(newPuffers);
+		map.removeObjects(removedObjects);
+		map.removeCreatures(removedCreatures);
+		map.add(newCreatures);
     }
     
     /**
@@ -270,38 +288,39 @@ public class Board extends JPanel implements Runnable {
      */
 	private void advanceTime() {
 		
-		ArrayList<Puffer> decayedPuffers = new ArrayList<Puffer>();
-		ArrayList<Food> rottenFoods = new ArrayList<Food>();
-		ArrayList<Food> localFoods = map.getFoodList();
-		Food food;
+		ArrayList<Creature> decayedCreatures = new ArrayList<Creature>();
+		ArrayList<EnvObject> rottenFoods = new ArrayList<EnvObject>();
+		ArrayList<EnvObject> globalFoods = map.getAllOfType(Food.class);
+		ArrayList<EnvObject> globalWalls = map.getAllOfType(Wall.class);
+		EnvObject food;
 		Coord c;
 		
-		for (int i = 0; i < localFoods.size(); i++) {		
-			food = localFoods.get(i);
+		for (int i = 0; i < globalFoods.size(); i++) {		
+			food = globalFoods.get(i);
 			if (!food.ageUp()) {
 				rottenFoods.add(food);
 			}
 		}
 			
-		for (Food rottenFood : rottenFoods) {
+		for (EnvObject rottenFood : rottenFoods) {
 			c = rottenFood.getCoord();
 			map.add(new Wall(c.x, c.y, rottenFood.getSize()));
 		}
 		
-		map.removeFoods(rottenFoods);
+		map.removeObjects(rottenFoods);
 		
-		for (Puffer puffer : map.getPufferList()) {
-			if (!puffer.isAlive()) {
-				if (!puffer.ageUp()) {
-					decayedPuffers.add(puffer);
+		for (Creature creature : map.getCreatureList()) {
+			if (!creature.isAlive()) {
+				if (!creature.ageUp()) {
+					decayedCreatures.add(creature);
 				}
 			}
 		}
 		
-		for (Puffer dp : decayedPuffers) {
-			c = dp.getCoord();
-			float z = dp.getSize();
-			float p = dp.getSpeed();
+		for (Creature dc : decayedCreatures) {
+			c = dc.getCoord();
+			float z = dc.getSize();
+			float p = dc.getSpeed();
 			if (z > p) {	
 				p = p / z;
 				z = 1;
@@ -310,12 +329,12 @@ public class Board extends JPanel implements Runnable {
 				p = 1;
 			}
 			
-			map.add(new Food(c.x, c.y, z, p, dp.getSize()));
+			map.add(new Food(c.x, c.y, z, p, dc.getSize()));
 		}
 		
-		map.removePuffers(decayedPuffers);
+		map.removeCreatures(decayedCreatures);
 		
-		for (Wall wall : map.getWallList()) {
+		for (EnvObject wall : globalWalls) {
 			if (!wall.ageUp()) {
 				wall.crumble();
 			}

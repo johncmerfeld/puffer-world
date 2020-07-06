@@ -10,9 +10,7 @@ import java.awt.Color;
  *
  */
 
-public class Wall extends SimObject {
-	
-	private boolean crumbled = false;
+public class Wall extends EnvObject {
 	
 	private int crumbleTime = 3000;
 
@@ -31,18 +29,9 @@ public class Wall extends SimObject {
 		this.maxAge = crumbleTime;
 	}
 
-	/**
-	 * @return the crumbled
-	 */
-	public boolean isCrumbled() {
-		return crumbled;
-	}
-
-	/**
-	 * @param crumbled the crumbled to set
-	 */
+	@Override
 	public void crumble() {
-		this.crumbled = true;
+		this.solid = false;
 		this.color = Color.DARK_GRAY;
 	}
 

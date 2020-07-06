@@ -51,6 +51,9 @@ public class Simulation extends JFrame {
         JLabel nPufferLabel = new JLabel("Number of puffers:");
         JTextField nPufferField = new JTextField("10");
         
+        JLabel nScooperLabel = new JLabel("Number of Scoopers:");
+        JTextField nScooperField = new JTextField("5");
+        
         JLabel foodGenLabel = new JLabel("Food generation interval:");
         JTextField foodGenField = new JTextField("10");
         
@@ -62,6 +65,7 @@ public class Simulation extends JFrame {
         		public void actionPerformed(ActionEvent e) { 
    			
         			board.start(Integer.parseInt(nPufferField.getText()),
+        					Integer.parseInt(nScooperField.getText()),
         					Integer.parseInt(foodGenField.getText()),
         					Integer.parseInt(worldSizeField.getText()));
         		} 
@@ -84,12 +88,15 @@ public class Simulation extends JFrame {
         });
         
     	JPanel configPanel = new JPanel();
-    	configPanel.setLayout(new GridLayout(3, 2));
+    	configPanel.setLayout(new GridLayout(4, 2));
     	
     	JPanel actionPanel = new JPanel();
         
         	configPanel.add(nPufferLabel);
         configPanel.add(nPufferField);
+        
+    	configPanel.add(nScooperLabel);
+        configPanel.add(nScooperField);
         
     	configPanel.add(foodGenLabel);
         configPanel.add(foodGenField);

@@ -10,92 +10,82 @@ import java.util.ArrayList;
  */
 
 public class GlobalMap {
-    private ArrayList<Puffer> pufferList;
-    private ArrayList<Food> foodList;
-    private ArrayList<Wall> wallList;
+    private ArrayList<Creature> creatureList;
+    private ArrayList<EnvObject> objectList;
     
     private int nextFamily = 0;
     private int worldSize;
 
 	public GlobalMap(int worldSize) {
-		this.setFoodList(new ArrayList<Food>());
-		this.setPufferList(new ArrayList<Puffer>());	
-		this.setWallList(new ArrayList<Wall>());
+		this.setCreatureList(new ArrayList<Creature>());
+		this.setObjectList(new ArrayList<EnvObject>());
 		this.setWorldSize(worldSize);
 	}
 
 	/**
-	 * @return the pufferList
+	 * @return the creatureList
 	 */
-	public ArrayList<Puffer> getPufferList() {
-		return pufferList;
+	public ArrayList<Creature> getCreatureList() {
+		return creatureList;
 	}
 
 	/**
-	 * @param pufferList the pufferList to set
+	 * @param creatureList the creatureList to set
 	 */
-	public void setPufferList(ArrayList<Puffer> pufferList) {
-		this.pufferList = pufferList;
+	public void setCreatureList(ArrayList<Creature> creatureList) {
+		this.creatureList = creatureList;
+	}
+	
+	public void add(Creature creature) {
+		this.creatureList.add(creature);
+	}
+	
+	public void add(ArrayList<Creature> creatures) {
+		this.creatureList.addAll(creatures);
+	}
+	
+	public void removeCreatures(ArrayList<Creature> removeList) {
+		this.creatureList.removeAll(removeList);
 	}
 
 	/**
-	 * @return the foodList
+	 * @return the objectList
 	 */
-	public ArrayList<Food> getFoodList() {
-		return foodList;
+	public ArrayList<EnvObject> getObjectList() {
+		return objectList;
 	}
 
 	/**
-	 * @param foodList the foodList to set
+	 * @param objectList the objectList to set
 	 */
-	public void setFoodList(ArrayList<Food> foodList) {
-		this.foodList = foodList;
+	public void setObjectList(ArrayList<EnvObject> objectList) {
+		this.objectList = objectList;
 	}
 	
-	/**
-	 * @return the wallList
-	 */
-	public ArrayList<Wall> getWallList() {
-		return wallList;
+	public void add(EnvObject eo) {
+		this.objectList.add(eo);
+	}
+	
+	public void addObjects(ArrayList<EnvObject> objects) {
+		this.objectList.addAll(objects);
 	}
 
-	/**
-	 * @param wallList the wallList to set
-	 */
-	public void setWallList(ArrayList<Wall> wallList) {
-		this.wallList = wallList;
-	}
-
-	public void add(Puffer puffer) {
-		this.pufferList.add(puffer);
-	}
-	
-	public void add(Food food) {
-		this.foodList.add(food);
-	}
-	
-	public void add(Wall wall) {
-		this.wallList.add(wall);
-	}
-	
-	public void removeFoods(ArrayList<Food> removeList) {
-		this.foodList.removeAll(removeList);
-	}
-	
-	public void removePuffers(ArrayList<Puffer> removeList) {
-		this.pufferList.removeAll(removeList);
-	}
-	
-	public void removeWalls(ArrayList<Wall> removeList) {
-		this.wallList.removeAll(removeList);
-	}
-	
-	public void add(ArrayList<Puffer> puffers) {
-		this.pufferList.addAll(puffers);
+	public void removeObjects(ArrayList<EnvObject> removeList) {
+		this.objectList.removeAll(removeList);
 	}
 	
 	public int getNextFamily() {
 		return nextFamily++;
+	}
+	
+	public ArrayList<EnvObject> getAllOfType(Class<?> c) {
+		ArrayList<EnvObject> returnList = new ArrayList<EnvObject>();
+		for (EnvObject eo : objectList) {
+			if (c.isInstance(eo)) {
+				returnList.add(eo);
+			}
+		}
+		return returnList;
 	}
 
 	/**

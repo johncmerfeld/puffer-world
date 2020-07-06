@@ -89,6 +89,10 @@ public abstract class SimObject {
 		return new Rectangle(coord.x, coord.y, size, size);
 	}
 	
+	public boolean intersects(SimObject so) {
+		return getBounds().intersects(so.getBounds());
+	}
+	
 	protected double calculateDistance(Coord c) {
 		return Math.hypot(coord.x - c.x, coord.y - c.y);
 	}
