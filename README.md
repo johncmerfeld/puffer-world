@@ -3,6 +3,17 @@ Currently packaged as jsimulate
 
 ## Version history
 
+### Version 6.0 (July 6th):
+  - **New creature: Scoopers**
+    - Unlike Puffers, Scoopers gather food from afar and carry it back to their home
+    - For now, their appearance is identical to Puffers, but they do not grow, reproduce, or starve
+    - For now, bringing food back home has no effect
+  - **New terrain: Homes**
+    - All Scoopers have a home. Homes map to a family, binding Puffers and Scoopers
+    - If there are more Puffers than Scoopers, the extra Puffers are homeless (will change)
+    - For now, homes confer no protective benefits
+  - Significant refactoring to better utilize inheritence and polymorphism
+
 ### Version 5.0 (June 26th):
   - **New behavior: Reproduction**
     - After a certain number of growth spurts, puffers die and produce offspring 
