@@ -1,3 +1,6 @@
+# Welcome to Puffer World
+Currently packaged as jsimulate
+
 ## Version history
 
 ### Version 5.0 (June 26th):
