@@ -40,7 +40,7 @@ Currently packaged as jsimulate
   - **New Puffer attribute: Speed!**
     - Food provides nutrients for both size and speed
     - When Puffers reach certain milestones for either, the stat will increase
-    - Food formed from decayed puffers will mimic the attributes of their living bodyi
+    - Food formed from decayed puffers will mimic the attributes of their living body
   - **New behavior: Predation**
     - When food is scare, large puffer will seek out smaller ones to attack
     - Small puffers can sense when they are being chased and will try to escape
