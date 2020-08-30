@@ -7,8 +7,13 @@ Currently packaged as jsimulate
 ```shell
 # make sure Java is installed
 # clone repo
+# then...
+
+# navigate to src directory
 cd src
+# compile
 javac jsimulate/Main.java 
+# run
 java jsimulate.Main
 ```
 
