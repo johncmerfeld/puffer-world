@@ -1,5 +1,17 @@
 # Welcome to Puffer World
+
+## To be renamed (The terrarium)
 Currently packaged as jsimulate
+
+## To run from command line (working on a standalone application)
+```shell
+# make sure Java is installed
+# clone repo
+cd src
+javac jsimulate/Main.java 
+java jsimulate.Main
+```
+
 
 ## Version history
 
