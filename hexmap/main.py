@@ -1,49 +1,19 @@
-"""A variant of Conway's Game of Life on a hexagonal grid.
-
-Rules: B2/S12
- - Dead cells with two live neighbours are born.
- - Live cells with one or two live neighbours survive.
- - All other live cells die.
-"""
-import os
-
 import numpy as np
+import traceback
 
 import hexHelper as helper
 from tile import Tile
 
-RULE_CONFIGURATION = {
-    'b': (2,),  # birth
-    's': (1, 2)  # survival
-}
-
 GRID_CONFIGURATION = {
-    'cell_radius': 6,
+    'cell_radius': 12,
     'rows': 70,
     'cols': 90,
     'crop_bigger_grids': True
 }
 
-# Colors taken from 'Nord' by Arctic Ice Studio
-# https://git.io/nord
-COLOR_CONFIGURATION = {
-    'palette': 'dark_mode',
-    'dark_mode': [
-        (46, 52, 64),  # dead
-        (89, 106, 152),  # dying
-        (236, 239, 244),  # born
-        (170, 189, 173)  # alive
-    ],
-    'light_mode': [
-        (216, 222, 233),  # dead
-        (236, 239, 244),  # dying
-        (59, 66, 82),  # born
-        (46, 52, 64)  # alive
-    ]
-}
-
-DENSITY = 0.01 # initial truth density
-SPEED = 100  # gif speed
+DENSITY = 0.001 # initial truth density
+SPEED = 200  # gif speed
+TOTAL_TIME = 400 # number of generations
 
 def randomSeed():
     result = []
@@ -58,17 +28,15 @@ def randomSeed():
     return result
 
 class Game:
-    def __init__(self, seed=None, ticks=100):
+    def __init__(self, seed=None, ticks=TOTAL_TIME):
         assert ticks >= 0
 
         self.number_of_ticks = ticks
         self.count = 0
         self.helper = helper.GridHelper(**GRID_CONFIGURATION)
 
-        # FIXME: we're here, let's refactor these as objects
         if not seed:
             seed = randomSeed()
-        # TODO: might not be picking up changes because I keep the initial seed within the boundaries
         seed = self.helper.sanitize(seed)
 
         self.illustrator = Game.__set_up_illustrator(seed)
@@ -77,9 +45,9 @@ class Game:
     def play(self):
         self.illustrator.draw(self.generation)
         print('------- I HAVE INITIALIZED ---------')
+        print(f"Starting with {len(self.generation._allActive())} active tiles ")
 
         while self.count < self.number_of_ticks:
-            print('------- TICKING... ---------')
             self.generation = self.generation.tick()
             self.illustrator.draw(self.generation)
             self.count += 1
@@ -93,66 +61,61 @@ class Game:
             'row_count': len(seed),
             'col_count': len(seed[0])
         }
-        return helper.Illustrator(COLOR_CONFIGURATION, SPEED, **config)
+        return helper.Illustrator(SPEED, **config)
 
 # this is the evolution logic...
 # I think it's also a full representation of the board at any given time
+# TODO: still would like internal methods to be more in terms of tiles...
 class Generation:
     def __init__(self, grid, previous=None):
         self._grid = grid
         self._previous = previous
         self._rows = len(self._grid)
         self._cols = len(self._grid[0])
+        self._hotPoints = []
+    
+    def __str__(self):
+        result = ""
+        for row in range(self._rows):
+            for col in range(self._cols):
+                result += f"[{self.valAt(row, col)}]"
+            result += "\n"
+        return result
 
     # the purpose of this is to return the truth value of each point
     # in general, all we need this to return is a status that we can convert into a color
-    # FIXME: not true!! This updates the whole map. So they have to stay as Tiles!!
     def tick(self):
-        newGrid = []
-        # TODO: this is a very memory-inefficient way to do this but let's just see
-        for row_index, row in enumerate(self._grid):
-            rowResult = []
-            for col_index, _ in enumerate(row):
-                if self._is_born((row_index, col_index)) or self._survives((row_index, col_index)):
-                    rowResult.append(Tile(row_index, col_index, True))
-                else:
-                    rowResult.append(Tile(row_index, col_index, False))        
-            newGrid.append(rowResult)
-        return Generation(newGrid, self)
+        allActive = self._allActive()
+        #for row_index, row in enumerate(self._grid):
+        #    for col_index, _ in enumerate(row):
+        #        self._grid[row_index % self._rows][col_index % self._cols].evolve()
+        for tile in allActive:
+            tile.evolve()
+            tile.deactivate()
+            n = self._randomNeighbor(tile)
+            n.activate()
 
-    def is_alive(self, cell):
+        return Generation(self._grid, self)
+    
+    def valAt(self, row, col):
+        try:
+            return self._grid[row][col].val
+        except IndexError:
+            # don't fully understand why this gets called with with 1 over the edge...
+            return 0
+
+    def _neighbors(self, cell):
         row, col = cell
-        return self._grid[row % self._rows][col % self._cols].val
+        positions = Generation._relative_neighbor_coordinates(row % 2)
+        neighbors = []
+        for (r, c) in positions:
+            if row + r >= 0 and row + r < self._rows and col + c >= 0 and col + c < self._cols:
+                neighbors.append(self._grid[row + r][col + c])
 
-    def was_alive(self, cell):
-        if self._previous:
-            return self._previous.is_alive(cell)
-        else:
-            return self.is_alive(cell)
-
-    def _is_born(self, cell):
-        livingNeighbors = [t.val for t in self._neighbours(cell)]
-        return not self.is_alive(cell) \
-               and sum(livingNeighbors) in RULE_CONFIGURATION.get('b')
-
-    def _survives(self, cell):
-        livingNeighbors = [t.val for t in self._neighbours(cell)]
-        return self.is_alive(cell) \
-               and sum(livingNeighbors) in RULE_CONFIGURATION.get('s')
-
-    def _neighbours(self, cell):
-        row, col = cell
-        positions = Generation._relative_neighbour_coordinates(row % 2)
-
-        neighbours = [
-            self._grid[(row + r) % self._rows][(col + c) % self._cols]
-            for (r, c) in positions
-        ]
-
-        return neighbours
+        return neighbors
 
     @staticmethod
-    def _relative_neighbour_coordinates(offset):
+    def _relative_neighbor_coordinates(offset):
         # offset is caused by alternating cell alignment in a hex grid
         left, right = -offset, -offset + 1
         return (
@@ -160,6 +123,19 @@ class Generation:
             (0, -1), (0, 1),
             (1, left), (1, right)
         )
+    
+    def _allActive(self):
+        result = []
+        for row_index, row in enumerate(self._grid):
+            for col_index, _ in enumerate(row):
+                tile = self._grid[row_index][col_index]
+                if tile.active:
+                    result.append(tile)
+        return result
+    
+    def _randomNeighbor(self, tile):
+        neighbors = self._neighbors((tile.row, tile.col))
+        return np.random.choice(neighbors)
 
 
 Game().play()

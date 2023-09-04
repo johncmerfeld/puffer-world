@@ -135,7 +135,7 @@ class HexGeometry:
 
 
 class Illustrator:
-    def __init__(self, color_config, speed, cell_radius, row_count, col_count):
+    def __init__(self, speed, cell_radius, row_count, col_count):
         self.frames = []
 
         # Grid
@@ -152,16 +152,16 @@ class Illustrator:
         self.h_offset = HexGeometry.height_offset(raw_h_offset, cell_radius)
 
         # Color
-        palette = color_config.get(color_config['palette'])
-        assert len(palette) >= 4
-        self.palette = [col for row in palette for col in row]
+        #palette = color_config.get(color_config['palette'])
+        #assert len(palette) >= 2
+        #self.palette = [col for row in palette for col in row]
 
         # Speed
         self.speed = speed
 
     def draw(self, generation):
         img = Image.new('P', [self.width, self.height], 0)
-        img.putpalette(self.palette)
+        #img.putpalette(self.palette)
         draw = ImageDraw.Draw(img, 'P')
         params = {
             'radius': self.cell_radius,
@@ -205,5 +205,5 @@ class Illustrator:
 
     @staticmethod
     def __get_color_index(generation, row, col):
-        cell = [row, col]
-        return 2 * generation.is_alive(cell) + generation.was_alive(cell)
+        green = min([255, 25 * generation.valAt(row, col)])
+        return (0, green, 0)
