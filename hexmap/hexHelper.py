@@ -159,10 +159,10 @@ class Illustrator:
         # Speed
         self.speed = speed
 
-    def draw(self, generation):
-        img = Image.new('P', [self.width, self.height], 0)
+    def draw(self, map):
+        img = Image.new('RGB', [self.width, self.height], 0)
         #img.putpalette(self.palette)
-        draw = ImageDraw.Draw(img, 'P')
+        draw = ImageDraw.Draw(img, 'RGB')
         params = {
             'radius': self.cell_radius,
             'w_offset': self.w_offset,
@@ -173,7 +173,7 @@ class Illustrator:
             for col in range(self.col_count + row % 2):
                 draw.polygon(
                     HexGeometry.hexagon(row, col, **params),
-                    fill=Illustrator.__get_color_index(generation, row, col)
+                    fill=Illustrator.__get_color_index(map, row, col)
                 )
         self.frames.append(img)
 
@@ -189,7 +189,7 @@ class Illustrator:
                 optimize=True,
                 save_all=True
             )
-        os.system(f"ffmpeg -i {gif_file_name} -vcodec mpeg4 -y -r 60 {movie_file_name}")
+        os.system(f"ffmpeg -i {gif_file_name} -vcodec mpeg4 -q:v 0 -y -r 60 {movie_file_name}")
         print('Movie saved as "' + movie_file_name + '"')
 
     def __beautify(self, length):
@@ -204,6 +204,10 @@ class Illustrator:
         return int(pretty_length), offset
 
     @staticmethod
-    def __get_color_index(generation, row, col):
-        green = min([255, 25 * generation.valAt(row, col)])
-        return (0, green, 0)
+    def __get_color_index(map, row, col):
+        green = min([255, 25 * map.elevationAt(row, col)])
+        blue = 0
+        if map.precipitationAt(row, col) > 0:
+            blue = min([255, (25 * (map.precipitationAt(row, col) / 100))])
+            green = 0
+        return (0, int(green), int(blue))

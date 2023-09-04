@@ -1,18 +1,40 @@
 class Tile:
 
-    def __init__(self, row, col, active):
+    def __init__(self, row, col, activeE, activeP):
         self.row = row
         self.col = col
-        self.active = active
-        self.val = 0
+        self.activeE = activeE
+        self.activeP = activeP
+        self.elevation = 0
+        self.precipitation = 0
+        self.nextWaterLevel = 0
 
-    # do I check here or at the board level?
-    def evolve(self):
+    # do I check activation here or at the board level? for now, at the board level
+    def elevate(self):
         #if self.active:
-        self.val += 1
-    
-    def activate(self):
-        self.active = True
+        self.elevation += 1
 
-    def deactivate(self):
-        self.active = False
+    def precipitate(self):
+        self.precipitation += 100
+        self.nextWaterLevel += 100
+    
+    def activateE(self):
+        self.activeE = True
+
+    def deactivateE(self):
+        self.activeE = False
+
+    def activateP(self):
+        self.activeP = True
+
+    def deactivateP(self):
+        self.activeP = False
+
+    def setPrecipitation(self, val):
+        self.precipitation = val
+
+    def setNextWaterLevel(self, val):
+        self.nextWaterLevel = val
+
+    def waterAdjustedElevation(self):
+        return self.elevation + int(self.precipitation / 100)
