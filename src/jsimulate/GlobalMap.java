@@ -12,6 +12,7 @@ import java.util.ArrayList;
 public class GlobalMap {
     private ArrayList<Creature> creatureList;
     private ArrayList<EnvObject> objectList;
+    private ArrayList<Family> familyList;
     
     private int nextFamily = 0;
     private int worldSize;
@@ -19,7 +20,25 @@ public class GlobalMap {
 	public GlobalMap(int worldSize) {
 		this.setCreatureList(new ArrayList<Creature>());
 		this.setObjectList(new ArrayList<EnvObject>());
+		this.setFamilyList(new ArrayList<Family>());
 		this.setWorldSize(worldSize);
+	}
+	
+	/**
+	 * 
+	 */
+	public void add(Family family) {
+		this.familyList.add(family);
+	}
+	
+	public void growAllByFamily(int fid, int type) {
+		for (Family family : familyList) {
+			if (family.getId() == fid) {
+				family.growAll(type);
+				return;
+			}
+		}
+		throw new java.lang.RuntimeException("Family not found, somehow!");
 	}
 
 	/**
@@ -100,6 +119,20 @@ public class GlobalMap {
 	 */
 	public void setWorldSize(int worldSize) {
 		this.worldSize = worldSize;
+	}
+
+	/**
+	 * @return the familyList
+	 */
+	public ArrayList<Family> getFamilyList() {
+		return familyList;
+	}
+
+	/**
+	 * @param familyList the familyList to set
+	 */
+	public void setFamilyList(ArrayList<Family> familyList) {
+		this.familyList = familyList;
 	}
 	
 }

@@ -69,24 +69,37 @@ public class Board extends JPanel implements Runnable {
         		int xpos = ThreadLocalRandom.current().nextInt(1, worldSize);
         		int ypos = ThreadLocalRandom.current().nextInt(1, worldSize);
 
-        		int family = map.getNextFamily();
+        		int familyId = map.getNextFamily();
+        		Family family = new Family(familyId);
+        		
         		Color color = new Color(0, (float)xpos/ worldSize, 1);
    
-        		Home home = new Home(xpos, ypos, family, SimUtils.defaultHomeSize, color);
+        		Home home = new Home(xpos, ypos, familyId, SimUtils.defaultHomeSize, color);
         		map.add(home);
+        		
+        		Scooper scooper = new Scooper(xpos, ypos, familyId, SimUtils.defaultCreatureSize, color, home);
+        		family.add(scooper);
         		// FIXME update scooper color
-        		map.add(new Scooper(xpos, ypos, family, SimUtils.defaultCreatureSize, color, home));
+        		map.add(scooper);
         		if (remainingPuffers > 0) {
-        			map.add(new Puffer(xpos, ypos, family, SimUtils.defaultCreatureSize, color));
+        			Puffer puffer = new Puffer(xpos, ypos, familyId, SimUtils.defaultCreatureSize, color);
+        			family.add(puffer);
+        			map.add(puffer);
         			remainingPuffers--;
         		}
+        		map.add(family);
         	}
         	
         	/* randomly place remaining puffers */
         	for (int i = 0; i < remainingPuffers; i++) {
         		int xpos = ThreadLocalRandom.current().nextInt(1, worldSize);
         		int ypos = ThreadLocalRandom.current().nextInt(1, worldSize);
-        		map.add(new Puffer(xpos, ypos, map.getNextFamily(), SimUtils.defaultCreatureSize, new Color(0, (float)xpos/ worldSize , 1)));
+        		int familyId = map.getNextFamily();
+        		Family family = new Family(familyId);
+        		Puffer puffer = new Puffer(xpos, ypos, familyId, SimUtils.defaultCreatureSize, new Color(0, (float)xpos/ worldSize , 1));
+        		map.add(puffer);
+        		family.add(puffer);
+        		map.add(family);
         	}
 
 		animator = new Thread(this);

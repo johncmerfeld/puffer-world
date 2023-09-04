@@ -24,5 +24,10 @@ public class Home extends EnvObject {
 	public void setFamily(int family) {
 		this.family = family;
 	}
+	
+	public void acceptFood(Food food) {
+		/*food.getSizePts();
+		food.getSpeedPts(); */
+	}
 
 }

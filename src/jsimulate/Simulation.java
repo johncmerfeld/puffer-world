@@ -24,12 +24,12 @@ public class Simulation extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 
-	public Simulation() {
+	public Simulation(String[] args) {
 
-        initUI();
+        initUI(args);
     }
     
-    private void initUI() {
+    private void initUI(String[] args) {
     	
     	this.setLayout(new BorderLayout());
         
@@ -49,16 +49,36 @@ public class Simulation extends JFrame {
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         
         JLabel nPufferLabel = new JLabel("Number of puffers:");
-        JTextField nPufferField = new JTextField("10");
+        JTextField nPufferField;
+        if (args.length > 0) {
+        		nPufferField = new JTextField(args[0]);     	
+        } else {
+        		nPufferField = new JTextField("10"); 
+        }
         
         JLabel nScooperLabel = new JLabel("Number of Scoopers:");
-        JTextField nScooperField = new JTextField("5");
+        JTextField nScooperField;
+        if (args.length > 1) {
+            nScooperField = new JTextField(args[1]);     	
+        } else {
+        		nScooperField = new JTextField("5"); 
+        }
         
         JLabel foodGenLabel = new JLabel("Food generation interval:");
-        JTextField foodGenField = new JTextField("10");
+        JTextField foodGenField;
+        if (args.length > 2) {
+            foodGenField = new JTextField(args[2]);     	
+        } else {
+        		foodGenField = new JTextField("10"); 
+        }
         
         JLabel worldSizeLabel = new JLabel("World size:");
-        JTextField worldSizeField = new JTextField("800");
+        JTextField worldSizeField;
+        if (args.length > 3) {
+            worldSizeField = new JTextField(args[3]);     	
+        } else {
+        		worldSizeField = new JTextField("800"); 
+        }
         
         JButton startBtn = new JButton("Start!");
         startBtn.addActionListener(new ActionListener() {

@@ -15,7 +15,7 @@ public class Main {
     public static void main(String[] args) {
         
         EventQueue.invokeLater(() -> {
-            JFrame ex = new Simulation();
+            JFrame ex = new Simulation(args);
             ex.setVisible(true);
         });
     }

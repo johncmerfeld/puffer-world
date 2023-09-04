@@ -27,6 +27,11 @@ public class Scooper extends Creature {
 		}
 		
 		if (atHome()) {
+			if (carryingFood()) {
+				home.acceptFood(myFood);
+				// FIXME shouldn't all be size...
+				map.growAllByFamily(this.family, SIZE);
+			}
 			myFood = null;
 		}
 		
@@ -65,6 +70,7 @@ public class Scooper extends Creature {
 
 	/**
 	 * Sort of misleading because they don't eat it yet, but... 
+	 * FIXME wait, this is bullshit
 	 */
 	@Override
 	public boolean eat(Food food) {
@@ -74,7 +80,14 @@ public class Scooper extends Creature {
 
 	@Override
 	protected boolean grow(int type) {
-		// TODO Auto-generated method stub
+		if (type == SIZE) {
+			size += 1;
+			eyesight += 4;
+		} else if (type == SPEED) {
+			speed += 1;
+			this.setVelocity(SimUtils.createVelocity(speed));
+			eyesight += 6;
+		}
 		return false;
 	}
 
