@@ -251,6 +251,8 @@ class Map:
         
         return Map(self._grid, self)
     
+    # TODO: level off the water as part of this
+    # i.e. find pools and force them to level
     def evaporate(self):
         for row in range(self._rows):
             for col in range(self._cols):
